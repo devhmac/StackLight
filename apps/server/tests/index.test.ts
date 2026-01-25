@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { testClient } from "hono/testing";
-import app from "../src";
+import app from "../src/.";
 
 // Quick Example Hono test for future reference
 describe("example test endpoint", () => {
