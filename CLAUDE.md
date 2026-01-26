@@ -112,7 +112,7 @@ cd packages/ui && bun run generate:component
 ## Initial Roadmap
 Day 1: Foundation
 
-Scaffold Express server with health endpoint
+Scaffold hono server with health endpoint
 Implement Service model + JSON file storage
 Add service CRUD routes
 Basic health checker (fetch + timeout)
@@ -158,3 +158,8 @@ This is a dev tool, not production monitoring—don't over-engineer
 Local-first means no auth needed for MVP
 Traces should never block the app (fire and forget)
 Start ugly, make it work, polish later
+
+### Future Feature Discussions
+- register a health chehck endpoint for a dependency, or then also register project as yours via repo url with like a config.json in it for our stuff to link etc
+can then turn into more standard monitoring - aka last hit, analytics, scalability blah blah
+- auto codebase scanning to dependency link and find what talks to what
