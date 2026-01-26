@@ -5,6 +5,7 @@ const EnvSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   PORT: z.coerce.number().default(8080),
+  DATABASE_PATH: z.string().default("data/stacklight.db"),
   // DATABASE_URL: z.url(),
 });
 

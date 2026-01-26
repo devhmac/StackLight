@@ -2,10 +2,12 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { exampleRouter } from "./routes/index.routes";
+import { logger } from "./middleware/logger";
 
 export const app = new Hono()
   .use(requestId())
   .use("*", cors())
+  .use("*", logger())
 
   //health check
   .get("/health", (c) =>
