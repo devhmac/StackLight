@@ -1,8 +1,10 @@
 import { $ } from "bun";
+import z, { ZodObject, ZodRawShape } from "zod";
 
 const ALLOWED_COMMANDS = [
   "rev-parse",
   "log",
+  "symbolic-ref",
   "for-each-ref",
   "shortlog",
   "diff",
@@ -14,7 +16,7 @@ const ALLOWED_COMMANDS = [
 export async function runGit(
   repoPath: string,
   args: string[],
-): Promise<String> {
+): Promise<string> {
   const command = args[0];
 
   if (!ALLOWED_COMMANDS.includes(command)) {
@@ -45,4 +47,29 @@ async function isGitRepo(repoPath: string): Promise<boolean> {
   const { exitCode, stdout } =
     await Bun.$`git -C ${repoPath} rev-parse --is-inside-work-tree`.quiet();
   return exitCode === 0 && stdout.toString().trim() === "true";
+}
+
+// GIT PARSE FUNCTIONS
+
+export const DELIMITER = "|~|";
+
+export function createGitParser<T extends ZodRawShape>(
+  schema: ZodObject<T>,
+  fields: (keyof z.infer<ZodObject<T>>)[],
+) {
+  return (output: string): z.infer<ZodObject<T>>[] => {
+    if (!output.trim()) return [];
+
+    return output
+      .trim()
+      .split("\n")
+      .map((line) => {
+        const values = line.split(DELIMITER);
+        const raw: Record<string, string> = {};
+        fields.forEach((field, i) => {
+          raw[field as string] = values[i] ?? "";
+        });
+        return schema.parse(raw);
+      });
+  };
 }
