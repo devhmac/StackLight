@@ -1,132 +1,101 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { format } from "date-fns";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Cell,
-  ReferenceLine,
-} from "recharts";
-import { format, differenceInDays } from "date-fns";
-import { ChartContainer } from "@/components/ui/chart";
+  GanttProvider,
+  GanttSidebar,
+  GanttSidebarGroup,
+  GanttSidebarItem,
+  GanttTimeline,
+  GanttHeader,
+  GanttFeatureList,
+  GanttFeatureListGroup,
+  GanttFeatureItem,
+  GanttToday,
+  type GanttFeature,
+  type GanttStatus,
+} from "@/components/kibo-ui/gantt";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 import type { Branch } from "@/types/digest";
-import { cn } from "@/lib/utils";
+import { BranchDetailDialog } from "./branch-detail-dialog";
 
 interface BranchTimelineProps {
   branches: Branch[];
 }
 
-interface TimelineDataPoint {
-  name: string;
-  start: number;
-  duration: number;
-  branch: Branch;
-  status: "active" | "stale" | "critical";
-}
-
-function getBranchStatus(branch: Branch): "active" | "stale" | "critical" {
-  if (branch.commitsBehind > 30) return "critical";
-  if (branch.isStale) return "stale";
-  return "active";
-}
-
-const statusColors = {
-  active: "hsl(var(--chart-2))",
-  stale: "hsl(var(--muted-foreground))",
-  critical: "hsl(var(--destructive))",
+// Define statuses for branch health
+const STATUS_ACTIVE: GanttStatus = {
+  id: "active",
+  name: "Active",
+  color: "hsl(142, 76%, 36%)", // green
 };
 
-const chartConfig = {
-  duration: {
-    label: "Duration",
-  },
-  active: {
-    label: "Active",
-    color: "hsl(var(--chart-2))",
-  },
-  stale: {
-    label: "Stale",
-    color: "hsl(var(--muted-foreground))",
-  },
-  critical: {
-    label: "Critical",
-    color: "hsl(var(--destructive))",
-  },
+const STATUS_STALE: GanttStatus = {
+  id: "stale",
+  name: "Stale",
+  color: "hsl(220, 9%, 46%)", // muted gray
 };
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    payload: TimelineDataPoint;
-  }>;
+const STATUS_CRITICAL: GanttStatus = {
+  id: "critical",
+  name: "Critical",
+  color: "hsl(0, 84%, 60%)", // red/destructive
+};
+
+function getBranchStatus(branch: Branch): GanttStatus {
+  if (branch.commitsBehind > 30) return STATUS_CRITICAL;
+  if (branch.isStale) return STATUS_STALE;
+  return STATUS_ACTIVE;
 }
 
-function CustomTooltip({ active, payload }: CustomTooltipProps) {
-  if (!active || !payload || !payload.length) return null;
-
-  const data = payload[0]?.payload;
-  if (!data) return null;
-
-  const { branch } = data;
-
-  return (
-    <div className="bg-popover text-popover-foreground rounded-lg border p-3 shadow-md">
-      <p className="font-semibold">{branch.name}</p>
-      <div className="text-muted-foreground mt-2 space-y-1 text-sm">
-        <p>Author: {branch.author}</p>
-        <p>Forked: {format(new Date(branch.forkedAt), "MMM d, yyyy")}</p>
-        <p>Last commit: {format(new Date(branch.lastCommit), "MMM d, yyyy")}</p>
-        <p>
-          {branch.commitsAhead} ahead, {branch.commitsBehind} behind
-        </p>
-        {branch.staleDays && <p className="text-yellow-600">Stale: {branch.staleDays} days</p>}
-      </div>
-    </div>
-  );
+function branchToFeature(branch: Branch): GanttFeature {
+  return {
+    id: branch.name,
+    name: branch.name.replace(/^(feature|fix|chore|experiment)\//, ""),
+    startAt: new Date(branch.forkedAt),
+    endAt: new Date(branch.lastCommit),
+    status: getBranchStatus(branch),
+  };
 }
 
 export function BranchTimeline({ branches }: BranchTimelineProps) {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Calculate timeline data
-  const { data, minDate, maxDate } = useMemo(() => {
-    const now = new Date().getTime();
-    const allDates = branches.flatMap((b) => [
-      new Date(b.forkedAt).getTime(),
-      new Date(b.lastCommit).getTime(),
+  const handleOpenDetail = (branch: Branch) => {
+    setSelectedBranch(branch);
+    setDialogOpen(true);
+  };
+
+  // Group branches by prefix (feature/, fix/, etc.)
+  const groupedBranches = useMemo(() => {
+    const groups = new Map<string, Branch[]>([
+      ["feature", []],
+      ["fix", []],
+      ["chore", []],
+      ["experiment", []],
+      ["other", []],
     ]);
-    const min = Math.min(...allDates);
-    const max = Math.max(...allDates, now);
 
-    const timelineData: TimelineDataPoint[] = branches.map((branch) => {
-      const startTime = new Date(branch.forkedAt).getTime();
-      const endTime = new Date(branch.lastCommit).getTime();
+    for (const branch of branches) {
+      const prefix = branch.name.split("/")[0] ?? "other";
+      const targetGroup = groups.has(prefix) ? prefix : "other";
+      const group = groups.get(targetGroup);
+      if (group) {
+        group.push(branch);
+      }
+    }
 
-      return {
-        name: branch.name.replace(/^(feature|fix|chore|experiment)\//, ""),
-        start: startTime - min,
-        duration: endTime - startTime,
-        branch,
-        status: getBranchStatus(branch),
-      };
-    });
-
-    // Sort by fork date
-    timelineData.sort((a, b) => a.start - b.start);
-
-    return { data: timelineData, minDate: min, maxDate: max };
+    // Filter out empty groups and convert to array
+    return Array.from(groups.entries()).filter(([, items]) => items.length > 0);
   }, [branches]);
 
-  const totalDays = differenceInDays(maxDate, minDate);
-
-  // Format x-axis ticks
-  const formatXAxis = (value: number) => {
-    const date = new Date(minDate + value);
-    return format(date, "MMM d");
+  const handleSelectItem = (id: string) => {
+    const branch = branches.find((b) => b.name === id);
+    setSelectedBranch(branch ?? null);
   };
 
   return (
@@ -136,68 +105,75 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
         <div className="flex items-center gap-2">
           <div
             className="h-3 w-3 rounded"
-            style={{ backgroundColor: statusColors.active }}
+            style={{ backgroundColor: STATUS_ACTIVE.color }}
           />
           <span>Active</span>
         </div>
         <div className="flex items-center gap-2">
           <div
             className="h-3 w-3 rounded"
-            style={{ backgroundColor: statusColors.stale }}
+            style={{ backgroundColor: STATUS_STALE.color }}
           />
           <span>Stale (14+ days)</span>
         </div>
         <div className="flex items-center gap-2">
           <div
             className="h-3 w-3 rounded"
-            style={{ backgroundColor: statusColors.critical }}
+            style={{ backgroundColor: STATUS_CRITICAL.color }}
           />
           <span>Critical (30+ behind)</span>
         </div>
       </div>
 
-      {/* Chart */}
-      <ChartContainer config={chartConfig} className="h-[400px] w-full">
-        <BarChart
-          data={data}
-          layout="vertical"
-          margin={{ top: 20, right: 30, left: 120, bottom: 20 }}
-        >
-          <XAxis
-            type="number"
-            domain={[0, maxDate - minDate]}
-            tickFormatter={formatXAxis}
-            tickCount={Math.min(totalDays, 8)}
-          />
-          <YAxis
-            type="category"
-            dataKey="name"
-            width={110}
-            tick={{ fontSize: 12 }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine
-            x={Date.now() - minDate}
-            stroke="hsl(var(--primary))"
-            strokeDasharray="3 3"
-            label={{ value: "Today", position: "top", fontSize: 10 }}
-          />
-          <Bar
-            dataKey="duration"
-            radius={[0, 4, 4, 0]}
-            onClick={(data) => setSelectedBranch(data.branch)}
-            className="cursor-pointer"
-          >
-            {data.map((entry, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={statusColors[entry.status]}
-                x={entry.start}
-              />
+      {/* Gantt Chart */}
+      <div className="h-[500px] overflow-hidden rounded-lg border">
+        <GanttProvider range="monthly" zoom={100}>
+          <GanttSidebar>
+            {groupedBranches.map(([groupName, groupBranches]) => (
+              <GanttSidebarGroup key={groupName} name={groupName}>
+                {groupBranches.map((branch) => (
+                  <GanttSidebarItem
+                    key={branch.name}
+                    feature={branchToFeature(branch)}
+                    onSelectItem={handleSelectItem}
+                  />
+                ))}
+              </GanttSidebarGroup>
             ))}
-          </Bar>
-        </BarChart>
-      </ChartContainer>
+          </GanttSidebar>
+          <GanttTimeline>
+            <GanttHeader />
+            <GanttFeatureList>
+              {groupedBranches.map(([groupName, groupBranches]) => (
+                <GanttFeatureListGroup key={groupName}>
+                  {groupBranches.map((branch) => (
+                    <GanttFeatureItem
+                      key={branch.name}
+                      {...branchToFeature(branch)}
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: getBranchStatus(branch).color,
+                          }}
+                        />
+                        <span className="truncate text-xs">
+                          {branch.name.replace(
+                            /^(feature|fix|chore|experiment)\//,
+                            ""
+                          )}
+                        </span>
+                      </div>
+                    </GanttFeatureItem>
+                  ))}
+                </GanttFeatureListGroup>
+              ))}
+            </GanttFeatureList>
+            <GanttToday />
+          </GanttTimeline>
+        </GanttProvider>
+      </div>
 
       {/* Selected branch details */}
       {selectedBranch && (
@@ -209,7 +185,7 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
                 by {selectedBranch.author}
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               {selectedBranch.isNew && <Badge>New</Badge>}
               {selectedBranch.isStale && (
                 <Badge variant="secondary">Stale</Badge>
@@ -217,6 +193,14 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
               {selectedBranch.commitsBehind > 30 && (
                 <Badge variant="destructive">Critical</Badge>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenDetail(selectedBranch)}
+              >
+                <Eye className="mr-1.5 h-3.5 w-3.5" />
+                View Details
+              </Button>
             </div>
           </div>
           <div className="mt-3 grid grid-cols-4 gap-4 text-sm">
@@ -227,10 +211,11 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
             <div>
               <p className="text-muted-foreground">Commits Behind</p>
               <p
-                className={cn(
-                  "font-medium",
-                  selectedBranch.commitsBehind > 30 && "text-destructive"
-                )}
+                className={
+                  selectedBranch.commitsBehind > 30
+                    ? "text-destructive font-medium"
+                    : "font-medium"
+                }
               >
                 {selectedBranch.commitsBehind}
               </p>
@@ -265,6 +250,13 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
           )}
         </div>
       )}
+
+      <BranchDetailDialog
+        branch={selectedBranch}
+        allBranches={branches}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

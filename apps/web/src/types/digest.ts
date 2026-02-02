@@ -99,6 +99,20 @@ export interface RepoDigest {
   };
 }
 
+// ========== Branch Detail (on-demand) ==========
+export interface FileDiff {
+  path: string;
+  added: number;
+  removed: number;
+}
+
+export interface BranchDetail extends Branch {
+  linesAdded: number;
+  linesRemoved: number;
+  recentCommits: Commit[];
+  files: FileDiff[];
+}
+
 // ========== API Response Types ==========
 export interface ReposListResponse {
   repos: Repo[];

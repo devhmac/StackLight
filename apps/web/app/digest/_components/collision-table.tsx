@@ -10,10 +10,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { CollisionPair } from "@/types/digest";
 
 interface CollisionTableProps {
   collisions: CollisionPair[];
+  onBranchClick?: (branchName: string) => void;
 }
 
 const likelihoodBadge = {
@@ -22,7 +24,7 @@ const likelihoodBadge = {
   low: "outline" as const,
 };
 
-export function CollisionTable({ collisions }: CollisionTableProps) {
+export function CollisionTable({ collisions, onBranchClick }: CollisionTableProps) {
   if (collisions.length === 0) {
     return (
       <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
@@ -46,8 +48,32 @@ export function CollisionTable({ collisions }: CollisionTableProps) {
       <TableBody>
         {collisions.map((collision, index) => (
           <TableRow key={index}>
-            <TableCell className="font-medium">{collision.branchA}</TableCell>
-            <TableCell className="font-medium">{collision.branchB}</TableCell>
+            <TableCell className="font-medium">
+              {onBranchClick ? (
+                <Button
+                  variant="link"
+                  className="h-auto p-0 font-medium"
+                  onClick={() => onBranchClick(collision.branchA)}
+                >
+                  {collision.branchA}
+                </Button>
+              ) : (
+                collision.branchA
+              )}
+            </TableCell>
+            <TableCell className="font-medium">
+              {onBranchClick ? (
+                <Button
+                  variant="link"
+                  className="h-auto p-0 font-medium"
+                  onClick={() => onBranchClick(collision.branchB)}
+                >
+                  {collision.branchB}
+                </Button>
+              ) : (
+                collision.branchB
+              )}
+            </TableCell>
             <TableCell>
               <div className="flex flex-wrap gap-1">
                 {collision.overlappingFiles.map((file) => (

@@ -1,27 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Check, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMarkSeen } from "@/hooks/use-digest";
 
 interface MarkSeenButtonProps {
-  onMarkSeen: () => Promise<boolean>;
+  repoId: string;
+  currentHead: string;
   newCommitCount: number;
 }
 
 export function MarkSeenButton({
-  onMarkSeen,
+  repoId,
+  currentHead,
   newCommitCount,
 }: MarkSeenButtonProps) {
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const { markSeen, isPending } = useMarkSeen();
   const [marked, setMarked] = useState(false);
 
   const handleClick = async () => {
-    setLoading(true);
-    const success = await onMarkSeen();
-    setLoading(false);
+    const success = await markSeen(repoId, currentHead);
     if (success) {
       setMarked(true);
+      // Refresh server data
+      router.refresh();
     }
   };
 
@@ -35,9 +40,14 @@ export function MarkSeenButton({
   }
 
   return (
-    <Button variant="default" size="sm" onClick={handleClick} disabled={loading}>
+    <Button
+      variant="default"
+      size="sm"
+      onClick={handleClick}
+      disabled={isPending}
+    >
       <Eye className="mr-2 h-4 w-4" />
-      {loading ? "Marking..." : `Mark ${newCommitCount} commits as seen`}
+      {isPending ? "Marking..." : `Mark ${newCommitCount} commits as seen`}
     </Button>
   );
 }
