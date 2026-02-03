@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { testClient } from "hono/testing";
-import app from "../src/.";
+import { app } from "../src/app";
 
 // Quick Example Hono test for future reference
 describe("example test endpoint", () => {
@@ -20,6 +20,17 @@ describe("example test endpoint", () => {
 
     // Assertions
     expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      query: "test",
+      results: ["result1", "result2"],
+    });
+  });
+
+  it("should return git data", async () => {
+    // Include the token in the headers and set the content type
+    const res = await client.git.$get();
+
+    // Assertions
     expect(await res.json()).toEqual({
       query: "test",
       results: ["result1", "result2"],
