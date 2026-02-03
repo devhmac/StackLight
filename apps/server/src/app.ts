@@ -3,12 +3,8 @@ import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
 import { exampleRouter } from "./routes/index.routes";
 import { logger } from "./middleware/logger";
-import { runGit } from "./lib/git";
-import {
-  getDefaultBranch,
-  getMainHead,
-  listBranches,
-} from "./services/git-service";
+import { gitRepository } from "./db/repositories/git.repository";
+import { getAllBranches } from "./services/git.service";
 
 export const app = new Hono()
   .use(requestId())
@@ -22,11 +18,10 @@ export const app = new Hono()
   .route("/", exampleRouter)
   .get("/git", async (c) => {
     const repoPath = c.req.query("repo") || "/Users/devpra/repos/idify";
-    // const response = await runGit("/Users/devpra/repos/idify", ["log"]);
-    const mainBranch = await getDefaultBranch(repoPath);
-    const mainRef = await getMainHead(repoPath);
-    console.log("main head ref", mainBranch);
-    const response = await listBranches(repoPath);
+    const mainBranch = await gitRepository.getOriginMainBranch(repoPath);
+    const mainRef = await gitRepository.getMainHead(repoPath);
+    console.log("main head ref:", mainBranch);
+    const response = await getAllBranches(repoPath);
     console.log(response);
     return c.json({ data: response });
   });
