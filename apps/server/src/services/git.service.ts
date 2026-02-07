@@ -1,5 +1,5 @@
 import type { GetAllBranchesResponse } from "@repo/types/git";
-import { gitRepository } from "../db/repositories/git.repository";
+import { gitRepository } from "../data/repositories/git.repository";
 import { logger } from "../middleware/logger";
 
 export async function getAllBranches(

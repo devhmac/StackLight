@@ -39,7 +39,7 @@ export const gitRepository = {
     ]).catch(() => null);
     const match = remoteInfo?.match(/HEAD branch:\s*(\S+)/);
 
-    if (match) return match[1];
+    if (match?.[1]) return match[1];
 
     throw new Error(`Could not determine default branch for repo: ${repoPath}`);
   },

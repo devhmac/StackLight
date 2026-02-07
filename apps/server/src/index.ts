@@ -2,7 +2,7 @@ import { serve } from "bun";
 import { app } from "./app";
 import env from "./config/env";
 
-import { db } from "./db";
+import { db } from "./data";
 import { sql } from "drizzle-orm";
 
 console.log(`🚀 Server starting on port: ${env.PORT}`);
