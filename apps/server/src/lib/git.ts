@@ -11,6 +11,7 @@ const ALLOWED_COMMANDS = [
   "merge-base",
   "rev-list",
   "fetch",
+  "show",
 ];
 
 export async function runGit(

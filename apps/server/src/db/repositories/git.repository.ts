@@ -7,43 +7,106 @@ export const gitRepository = {
     await runGit(repoPath, ["fetch", "--all"]);
   },
   // use this hash to mark "Last SEEN" commit, store this in the db along with repo path
-  async getOriginMainBranch(repoPath: string): Promise<string> {
-    const ref = await runGit(repoPath, [
+  async getOriginDefaultBranch(repoPath: string): Promise<string> {
+    // Fastest path: symbolic ref is set
+    const symbolicRef = await runGit(repoPath, [
       "symbolic-ref",
       "refs/remotes/origin/HEAD",
       "--short",
-    ]);
-    return ref.replace("origin/", "");
+    ]).catch(() => null);
+
+    if (symbolicRef) {
+      return symbolicRef.trim().replace("origin/", "");
+    }
+
+    // Check for common default branch names
+    for (const candidate of ["main", "master", "develop"]) {
+      const exists = await runGit(repoPath, [
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        `refs/remotes/origin/${candidate}`,
+      ]).catch(() => null);
+
+      if (exists) return candidate;
+    }
+
+    // Slowest path: query the remote directly
+    const remoteInfo = await runGit(repoPath, [
+      "remote",
+      "show",
+      "origin",
+    ]).catch(() => null);
+    const match = remoteInfo?.match(/HEAD branch:\s*(\S+)/);
+
+    if (match) return match[1];
+
+    throw new Error(`Could not determine default branch for repo: ${repoPath}`);
   },
   async getMainHead(repoPath: string): Promise<string> {
-    const defaultBranch = await this.getOriginMainBranch(repoPath);
+    const defaultBranch = await this.getOriginDefaultBranch(repoPath);
     return runGit(repoPath, ["rev-parse", `origin/${defaultBranch}`]);
   },
   async getBranches(repoPath: string): Promise<Branch[]> {
-    const output = await runGit(repoPath, listBranchesArgs);
+    const output = await runGit(repoPath, getBranchesQuery);
     return parseBranches(output);
   },
-  async getBranchDivergence(repoPath: string, branchName: string) {
+  async getBranchDivergence(
+    repoPath: string,
+    originDefault: string,
+    branchName: string,
+  ) {
     const output = await runGit(repoPath, [
       "rev-list",
       "--left-right",
       "--count",
-      `origin/main...origin/${branchName}`,
+      `origin/${originDefault}...origin/${branchName}`,
     ]);
     console.log(output);
-    const [ahead, behind] = output.trim().split(/\s+/);
+    const [behind, ahead] = output.trim().split(/\s+/);
     return {
       commitsAhead: ahead ? Number(ahead) : undefined,
       commitsBehind: behind ? Number(behind) : undefined,
     };
   },
+  async getBranchForkTimestamp(
+    repoPath: string,
+    originDefault: string,
+    branchName: string,
+  ): Promise<{ forkedAt: number; mergeBaseSha: string }> {
+    const mergeBaseSha = (
+      await runGit(repoPath, [
+        "merge-base",
+        `origin/${originDefault}`,
+        `origin/${branchName}`,
+      ])
+    ).trim();
+
+    const rawForkTimestamp = await runGit(repoPath, [
+      "show",
+      "-s",
+      `--format=%ct`,
+      mergeBaseSha,
+    ]);
+    return { forkedAt: parseInt(rawForkTimestamp.trim(), 10), mergeBaseSha };
+
+    // could also add the fork commit for ontext
+    // const raw = (await git(repoPath, [
+    //   'show',
+    //   '-s',
+    //   `--format=%ct${DELIMITER}%s`,
+    //   mergeBaseSha,
+    // ])).trim();
+
+    // const [timestampStr, message] = raw.split(DELIMITER);
+  },
 };
 
 // - Git Queries
 //
-const listBranchesArgs = [
+const getBranchesQuery = [
   "for-each-ref",
   "--sort=-committerdate",
-  `--format=%(refname:short)${DELIMITER}%(authorname)${DELIMITER}%(committerdate:unix)`,
+  `--format=%(refname:short)${DELIMITER}%(authorname)${DELIMITER}%(authoremail)${DELIMITER}%(committerdate:unix)${DELIMITER}%(subject)`,
   "refs/remotes/origin",
 ];

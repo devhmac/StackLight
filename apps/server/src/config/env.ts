@@ -20,4 +20,4 @@ if (error) {
 }
 
 export type env = z.infer<typeof EnvSchema>;
-export default env!;
+export default env;
