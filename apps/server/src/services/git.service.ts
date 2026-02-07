@@ -1,9 +1,16 @@
+import type { GetAllBranchesResponse } from "@repo/types/git";
 import { gitRepository } from "../db/repositories/git.repository";
 import { logger } from "../middleware/logger";
 
-export async function getAllBranches(repoPath: string) {
+export async function getAllBranches(
+  repoPath: string,
+): Promise<GetAllBranchesResponse> {
   const branches = await gitRepository.getBranches(repoPath);
   const originDefault = await gitRepository.getOriginDefaultBranch(repoPath);
+  const branchErrors: {
+    name: string;
+    error: string;
+  }[] = [];
   const branchData = await Promise.all(
     branches.map(async (branch) => {
       console.log(branch);
@@ -28,16 +35,16 @@ export async function getAllBranches(repoPath: string) {
         return { ...branch, ...divergence, ...forkedAt };
       } catch (error) {
         console.error(`Failed to get divergence for ${branch.name}:`, error);
-
-        return {
-          ...branch,
-          commitsAhead: undefined,
-          commitsBehind: undefined,
-          forkedAt: undefined,
-          error: String(error),
-        };
+        branchErrors.push({
+          name: branch.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
       }
     }),
   );
-  return branchData.filter(Boolean);
+  return {
+    data: branchData.filter((branch) => branch !== null),
+    errors: branchErrors.length > 0 ? branchErrors : null,
+  };
 }

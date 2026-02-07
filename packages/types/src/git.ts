@@ -15,7 +15,7 @@ export interface BranchError {
   error: string;
 }
 
-export interface GetAllBranchesResult {
+export interface GetAllBranchesResponse {
   data: BranchInfo[];
   errors: BranchError[] | null;
 }
