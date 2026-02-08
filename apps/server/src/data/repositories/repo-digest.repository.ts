@@ -23,6 +23,7 @@ export const digestRepository: IDigestRepository = {
       .values({
         repoId: validated.id,
         repoPath: validated.path,
+        repoName: validated.name,
         lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
         lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
         digestJson: JSON.stringify(validated.digestJson),
@@ -31,6 +32,7 @@ export const digestRepository: IDigestRepository = {
         target: repoDigests.repoId,
         set: {
           repoPath: validated.path,
+          repoName: validated.name,
           lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
           lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
           digestJson: JSON.stringify(validated.digestJson),

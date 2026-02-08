@@ -1,0 +1,1 @@
+ALTER TABLE `repo_digests` ADD `repo_name` text;
