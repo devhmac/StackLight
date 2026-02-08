@@ -8,10 +8,14 @@ const STALE_THRESHOLD_DAYS = 7;
 
 export async function getAllBranches(
   repoPath: string,
-  lastSeen?: string,
+  lastSeen: string | null,
 ): Promise<GetAllBranchesResponse> {
-  const branches = await gitRepository.getBranches(repoPath);
   const originDefault = await gitRepository.getOriginDefaultBranch(repoPath);
+
+  const [branches, mergedBranches] = await Promise.all([
+    gitRepository.getBranches(repoPath, originDefault),
+    gitRepository.getOpenButMergedBranches(repoPath, originDefault),
+  ]);
 
   const branchErrors: {
     name: string;
@@ -20,18 +24,10 @@ export async function getAllBranches(
   const branchData = await Promise.all(
     branches.map(async (branch) => {
       try {
-        if (
-          branch.name.replace("origin/", "") === originDefault ||
-          branch.name === "origin/HEAD"
-        ) {
+        if (branch.name === originDefault || branch.name === "HEAD") {
           return null;
         }
 
-        const divergence = await gitRepository.getBranchDivergence(
-          repoPath,
-          originDefault,
-          branch.name,
-        );
         const forkedAt = await gitRepository.getBranchForkTimestamp(
           repoPath,
           originDefault,
@@ -44,10 +40,10 @@ export async function getAllBranches(
 
         return {
           ...branch,
-          ...divergence,
           ...forkedAt,
           isStale,
           isNew: isNew(branch.lastCommitTimestamp, lastSeen),
+          isMerged: mergedBranches.has(branch.name),
         };
       } catch (error) {
         console.error(`Failed to get divergence for ${branch.name}:`, error);

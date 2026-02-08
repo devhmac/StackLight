@@ -21,7 +21,7 @@ export const ReposController = {
 
     const branchData = await getAllBranches(
       repo.path,
-      repo.lastSeen?.lastSeenTimestamp,
+      repo.lastSeen?.lastSeenTimestamp || null,
     );
 
     return c.json({ data: { ...repo, ...branchData } });

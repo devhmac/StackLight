@@ -47,27 +47,14 @@ export const gitRepository = {
     const defaultBranch = await this.getOriginDefaultBranch(repoPath);
     return runGit(repoPath, ["rev-parse", `origin/${defaultBranch}`]);
   },
-  async getBranches(repoPath: string): Promise<Branch[]> {
-    const output = await runGit(repoPath, getBranchesQuery);
-    return parseBranches(output);
-  },
-  async getBranchDivergence(
+
+  async getBranches(
     repoPath: string,
-    originDefault: string,
-    branchName: string,
-  ) {
-    const output = await runGit(repoPath, [
-      "rev-list",
-      "--left-right",
-      "--count",
-      `origin/${originDefault}...origin/${branchName}`,
-    ]);
-    console.log(output);
-    const [behind, ahead] = output.trim().split(/\s+/);
-    return {
-      commitsAhead: ahead ? Number(ahead) : undefined,
-      commitsBehind: behind ? Number(behind) : undefined,
-    };
+    defaultBranch: string,
+  ): Promise<Branch[]> {
+    const output = await runGit(repoPath, getBranchesQuery(defaultBranch));
+    console.log("get branchs", output);
+    return parseBranches(output);
   },
   async getBranchForkTimestamp(
     repoPath: string,
@@ -120,13 +107,27 @@ export const gitRepository = {
 
     return path.split("/").pop() ?? null;
   },
+  async getOpenButMergedBranches(
+    repoPath: string,
+    defaultBranch: string,
+  ): Promise<Set<String>> {
+    const mergedOutput = await runGit(repoPath, [
+      "branch",
+      "-r",
+      "--merged",
+      defaultBranch,
+    ]);
+    const mergedSet = new Set(
+      mergedOutput.split("\n").map((b) => b.trim().replace(/^origin\//, "")),
+    );
+    return mergedSet;
+  },
 };
 
 // - Git Queries
-//
-const getBranchesQuery = [
+const getBranchesQuery = (defaultBranch: string) => [
   "for-each-ref",
   "--sort=-committerdate",
-  `--format=%(refname:short)${DELIMITER}%(authorname)${DELIMITER}%(authoremail)${DELIMITER}%(committerdate:unix)${DELIMITER}%(subject)`,
+  `--format=%(refname:lstrip=3)${DELIMITER}%(authorname)${DELIMITER}%(authoremail)${DELIMITER}%(committerdate:unix)${DELIMITER}%(subject)${DELIMITER}%(ahead-behind:origin/${defaultBranch})${DELIMITER}%(ahead-behind:origin/${defaultBranch})`,
   "refs/remotes/origin",
 ];

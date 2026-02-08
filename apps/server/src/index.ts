@@ -12,6 +12,8 @@ const result = db.get<{ text: string }>(query);
 
 console.log(result);
 serve({
+  idleTimeout: 90, // Set timeout to 90 seconds (the value is in seconds)
+
   fetch: app.fetch,
   port: env.PORT,
 });

@@ -8,6 +8,9 @@ export interface BranchInfo {
   email: string;
   lastCommitTimestamp: string;
   lastCommitMessage: string;
+  isMerged: boolean;
+  isStale: boolean;
+  isNew: boolean;
 }
 
 export interface BranchError {

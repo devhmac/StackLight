@@ -13,6 +13,7 @@ const ALLOWED_COMMANDS = [
   "fetch",
   "show",
   "remote",
+  "branch",
 ];
 
 export async function runGit(
@@ -20,6 +21,7 @@ export async function runGit(
   args: string[],
 ): Promise<string> {
   const command = args[0];
+  console.log("RUNNING GIT:", args.join(" "));
 
   if (command && !ALLOWED_COMMANDS.includes(command)) {
     throw new Error(`Git Command not whitelisted: ${command}`);

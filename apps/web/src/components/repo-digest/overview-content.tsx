@@ -48,7 +48,7 @@ export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Active Branches"
-          value={branches.length}
+          value={branches.filter((b) => !b.isStale).length}
           description="tracking divergence vs origin default"
           icon={<GitBranch className="h-4 w-4" />}
         />

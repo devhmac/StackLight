@@ -44,7 +44,7 @@ export const getRepos = cache(async (): Promise<RepoSummary[]> => {
 export const getRepoDetails = cache(
   async (repoId: string): Promise<RepoDetails> => {
     const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
-      cache: "no-store",
+      cache: "force-cache",
     });
 
     if (!response.ok) {
