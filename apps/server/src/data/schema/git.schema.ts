@@ -5,7 +5,9 @@ export const BranchSchema = z.object({
   name: z.string().transform((s) => s.replace("origin/", "")),
   author: z.string(),
   email: z.string(),
-  lastCommitTimestamp: z.coerce.number(),
+  lastCommitTimestamp: z.coerce
+    .number()
+    .transform((unix) => new Date(unix * 1000).toISOString()),
   lastCommitMessage: z.string().default(""),
 });
 

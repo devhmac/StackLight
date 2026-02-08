@@ -73,7 +73,7 @@ export const gitRepository = {
     repoPath: string,
     originDefault: string,
     branchName: string,
-  ): Promise<{ forkedAt: number; mergeBaseSha: string }> {
+  ): Promise<{ forkedAt: string; mergeBaseSha: string }> {
     const mergeBaseSha = (
       await runGit(repoPath, [
         "merge-base",
@@ -88,7 +88,11 @@ export const gitRepository = {
       `--format=%ct`,
       mergeBaseSha,
     ]);
-    return { forkedAt: parseInt(rawForkTimestamp.trim(), 10), mergeBaseSha };
+    const unixTimestamp = parseInt(rawForkTimestamp.trim());
+    return {
+      forkedAt: new Date(unixTimestamp * 1000).toISOString(),
+      mergeBaseSha,
+    };
 
     // could also add the fork commit for ontext
     // const raw = (await git(repoPath, [

@@ -1,10 +1,10 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { requestId } from "hono/request-id";
-import { exampleRouter } from "./routes/index.routes";
 import { logger } from "./middleware/logger";
 import { gitRepository } from "./data/repositories/git.repository";
 import { getAllBranches } from "./services/git.service";
+import { repoRouter } from "./routes/repo/repo.routes";
 
 export const app = new Hono()
   .use(requestId())
@@ -15,7 +15,8 @@ export const app = new Hono()
   .get("/health", (c) =>
     c.json({ status: "ok", timestamp: new Date().toISOString() }),
   )
-  .route("/", exampleRouter)
+  // --- Routes ---
+  .route("/", repoRouter)
   .get("/git", async (c) => {
     const repoPath = c.req.query("repo") || "/Users/devpra/repos/minr";
     const mainBranch = await gitRepository.getOriginDefaultBranch(repoPath);

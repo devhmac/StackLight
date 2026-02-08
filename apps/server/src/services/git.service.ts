@@ -53,16 +53,18 @@ export async function getAllBranches(
 
 export async function addNewRepo(repoPath: string, digestJson = {}) {
   // Assumes Repository/path is valid because controller checks
-
-  const name = await gitRepository.getRepoName(repoPath);
-  const upsert = await digestRepository.upsert({
-    id: randomUUIDv7(),
-    name: name,
+  // const name = await gitRepository.getRepoName(repoPath);
+  const newRepoId = randomUUIDv7();
+  const newRepoData = {
+    id: newRepoId,
+    name: null,
     path: repoPath,
     lastSeen: {
       lastSeenTimestamp: new Date().toISOString(),
       lastSeenCommit: "test",
     },
     digestJson: digestJson,
-  });
+  };
+  const upsert = await digestRepository.upsert(newRepoData);
+  return { success: true, data: newRepoData };
 }

@@ -5,7 +5,7 @@ import {
   repoDigests,
   rowToRepoMapper,
 } from "../schema";
-import { db } from "..";
+import { db } from "../db";
 
 export interface IDigestRepository {
   upsert(repoDigest: RegisteredRepository): Promise<void>;
@@ -59,8 +59,9 @@ export const digestRepository: IDigestRepository = {
     return rowToRepoMapper(row);
   },
   async getAllRepos(): Promise<RegisteredRepository[]> {
-    const rows = db.select().from(repoDigests).all().map(rowToRepoMapper);
-    return rows;
+    const rows = db.select().from(repoDigests).all();
+    console.log(rows);
+    return rows.map(rowToRepoMapper);
   },
   async delete(repoId: string): Promise<boolean> {
     const result = db

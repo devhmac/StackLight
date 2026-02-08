@@ -1,12 +1,12 @@
 export interface BranchInfo {
-  forkedAt: number;
+  forkedAt: string;
   mergeBaseSha: string;
   commitsAhead: number | undefined;
   commitsBehind: number | undefined;
   name: string;
   author: string;
   email: string;
-  lastCommitTimestamp: number;
+  lastCommitTimestamp: string;
   lastCommitMessage: string;
 }
 
