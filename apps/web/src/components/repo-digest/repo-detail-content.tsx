@@ -15,15 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RepoSummary, UiBranch } from "@/types/digest";
+import type { RepoDetails, RepoSummary, UiBranch } from "@/types/digest";
 import { BranchDetailDialog } from "./branch-detail-dialog";
 
 interface RepoDetailContentProps {
-  repo: RepoSummary;
-  branches: UiBranch[];
+  repo: RepoDetails;
 }
 
-export function RepoDetailContent({ repo, branches }: RepoDetailContentProps) {
+export function RepoDetailContent({ repo }: RepoDetailContentProps) {
+  const branches = repo.branches;
   const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -61,7 +61,9 @@ export function RepoDetailContent({ repo, branches }: RepoDetailContentProps) {
               <FolderGit2 className="h-6 w-6" />
               {repo.name}
             </h1>
-            <p className="text-muted-foreground font-mono text-sm">{repo.path}</p>
+            <p className="text-muted-foreground font-mono text-sm">
+              {repo.path}
+            </p>
           </div>
         </div>
       </div>
@@ -74,7 +76,9 @@ export function RepoDetailContent({ repo, branches }: RepoDetailContentProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{branches.length}</div>
-            <p className="text-muted-foreground text-xs">tracked from default origin</p>
+            <p className="text-muted-foreground text-xs">
+              tracked from default origin
+            </p>
           </CardContent>
         </Card>
         <Card className="gap-2 py-4">
@@ -124,7 +128,9 @@ export function RepoDetailContent({ repo, branches }: RepoDetailContentProps) {
                   onClick={() => handleBranchClick(branch)}
                 >
                   <TableCell className="font-medium">{branch.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{branch.author}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {branch.author}
+                  </TableCell>
                   <TableCell className="text-right text-green-600 dark:text-green-400">
                     +{branch.commitsAhead ?? 0}
                   </TableCell>
@@ -139,8 +145,12 @@ export function RepoDetailContent({ repo, branches }: RepoDetailContentProps) {
                   <TableCell>
                     <div className="flex gap-1">
                       {branch.isNew && <Badge>New</Badge>}
-                      {branch.isStale && <Badge variant="secondary">Stale</Badge>}
-                      {!branch.isNew && !branch.isStale && <Badge variant="outline">Active</Badge>}
+                      {branch.isStale && (
+                        <Badge variant="secondary">Stale</Badge>
+                      )}
+                      {!branch.isNew && !branch.isStale && (
+                        <Badge variant="outline">Active</Badge>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

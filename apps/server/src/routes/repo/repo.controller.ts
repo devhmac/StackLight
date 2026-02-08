@@ -19,7 +19,10 @@ export const ReposController = {
       throw HttpError.notFound();
     }
 
-    const branchData = await getAllBranches(repo.path);
+    const branchData = await getAllBranches(
+      repo.path,
+      repo.lastSeen?.lastSeenTimestamp,
+    );
 
     return c.json({ data: { ...repo, ...branchData } });
   },

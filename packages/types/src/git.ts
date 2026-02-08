@@ -19,3 +19,14 @@ export interface GetAllBranchesResponse {
   branches: BranchInfo[];
   errors: BranchError[] | null;
 }
+
+export interface RepoSummary {
+  id: string;
+  name: string;
+  path: string;
+  lastSeen?: {
+    lastSeenCommit: string;
+    lastSeenTimestamp: string;
+  } | null;
+  digestJson?: unknown;
+}

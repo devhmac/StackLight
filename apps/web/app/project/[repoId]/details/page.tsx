@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FolderGit2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getRepoBranches, getRepos } from "@/lib/data";
+import { getRepoDetails } from "@/lib/data";
 import { RepoDetailContent } from "@/components/repo-digest/repo-detail-content";
 
 interface ProjectDetailsPageProps {
@@ -12,8 +12,7 @@ export default async function ProjectDetailsPage({
   params,
 }: ProjectDetailsPageProps) {
   const { repoId } = await params;
-  const repos = await getRepos();
-  const repo = repos.find((r) => r.id === repoId);
+  const repo = await getRepoDetails(repoId);
 
   if (!repo) {
     return (
@@ -33,7 +32,5 @@ export default async function ProjectDetailsPage({
     );
   }
 
-  const branches = await getRepoBranches(repoId);
-
-  return <RepoDetailContent repo={repo} branches={branches} />;
+  return <RepoDetailContent repo={repo} />;
 }

@@ -3,12 +3,18 @@ import type {
   BranchDetail,
   CollisionItem,
   DataSource,
+  RepoDetails,
   RepoSummary,
   RiskItem,
   TimelinePoint,
   UiBranch,
 } from "@/types/digest";
-import { demoBranchDetail, demoCollisions, demoRisks, demoTimeline } from "./demo-data";
+import {
+  demoBranchDetail,
+  demoCollisions,
+  demoRisks,
+  demoTimeline,
+} from "./demo-data";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -35,24 +41,24 @@ export const getRepos = cache(async (): Promise<RepoSummary[]> => {
   return data;
 });
 
-export const getRepoBranches = cache(
-  async (repoId: string): Promise<UiBranch[]> => {
+export const getRepoDetails = cache(
+  async (repoId: string): Promise<RepoDetails> => {
     const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
       cache: "no-store",
     });
 
     if (!response.ok) {
-      if (response.status === 404) return [];
       throw new Error(`Failed to fetch repo ${repoId}: ${response.statusText}`);
     }
 
     const { data } = await response.json();
+    console.log(data);
     const branches: UiBranch[] = (data?.branches ?? []).map((b: UiBranch) => ({
       filesChanged: [],
       ...b,
     }));
 
-    return branches;
+    return { ...data, branches };
   },
 );
 
@@ -67,21 +73,30 @@ export const getRiskSnapshot = cache(
 );
 
 export const getCollisions = cache(
-  async (_repoId: string, source: DataSource = "demo"): Promise<CollisionItem[]> => {
+  async (
+    _repoId: string,
+    source: DataSource = "demo",
+  ): Promise<CollisionItem[]> => {
     if (source === "api") return [];
     return demoCollisions;
   },
 );
 
 export const getTimeline = cache(
-  async (_repoId: string, source: DataSource = "demo"): Promise<TimelinePoint[]> => {
+  async (
+    _repoId: string,
+    source: DataSource = "demo",
+  ): Promise<TimelinePoint[]> => {
     if (source === "api") return [];
     return demoTimeline;
   },
 );
 
 export const getBranchDetail = cache(
-  async (branchName: string, source: DataSource = "demo"): Promise<BranchDetail | null> => {
+  async (
+    branchName: string,
+    source: DataSource = "demo",
+  ): Promise<BranchDetail | null> => {
     if (source === "demo") {
       if (demoBranchDetail.name === branchName) return demoBranchDetail;
       return { ...demoBranchDetail, name: branchName };

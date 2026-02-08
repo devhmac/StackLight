@@ -10,6 +10,9 @@ export interface RepoSummary {
     lastSeenTimestamp: string;
   } | null;
 }
+export interface RepoDetails extends RepoSummary {
+  branches: UiBranch[];
+}
 
 // UI-friendly branch type that extends the backend shape with optional flags
 export type UiBranch = BranchInfo & {

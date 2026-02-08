@@ -1,28 +1,47 @@
 import { GitBranch, AlertTriangle, GitFork, GitMerge } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { RepoSummary, RiskItem, UiBranch } from "@/types/digest";
+import type {
+  RepoDetails,
+  RepoSummary,
+  RiskItem,
+  UiBranch,
+} from "@/types/digest";
 import { MetricCard } from "./metric-card";
 import { DemoNotice } from "./demo-notice";
 
 interface OverviewContentProps {
-  repo?: RepoSummary;
-  branches: UiBranch[];
+  repo?: RepoDetails;
   risks?: RiskItem[];
 }
+export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
+  const branches = repo?.branches ?? [];
 
-export function OverviewContent({ repo, branches, risks = [] }: OverviewContentProps) {
-  const totalBehind = branches.reduce((sum, b) => sum + (b.commitsBehind ?? 0), 0);
-  const totalAhead = branches.reduce((sum, b) => sum + (b.commitsAhead ?? 0), 0);
-  const avgBehind = branches.length ? Math.round(totalBehind / branches.length) : 0;
-  const avgAhead = branches.length ? Math.round(totalAhead / branches.length) : 0;
+  const totalBehind = branches.reduce(
+    (sum, b) => sum + (b.commitsBehind ?? 0),
+    0,
+  );
+  const totalAhead = branches.reduce(
+    (sum, b) => sum + (b.commitsAhead ?? 0),
+    0,
+  );
+  const avgBehind = branches.length
+    ? Math.round(totalBehind / branches.length)
+    : 0;
+  const avgAhead = branches.length
+    ? Math.round(totalAhead / branches.length)
+    : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-muted-foreground text-sm">Repository</p>
-          <h1 className="text-2xl font-semibold">{repo?.name ?? "Selected Repo"}</h1>
-          {repo?.path && <p className="text-muted-foreground text-sm">{repo.path}</p>}
+          <h1 className="text-2xl font-semibold">
+            {repo?.name ?? "Selected Repo"}
+          </h1>
+          {repo?.path && (
+            <p className="text-muted-foreground text-sm">{repo.path}</p>
+          )}
         </div>
       </div>
 
@@ -65,13 +84,18 @@ export function OverviewContent({ repo, branches, risks = [] }: OverviewContentP
           <DemoNotice message="Risks are stubbed until the backend exposes a dedicated endpoint." />
           <ul className="space-y-2 text-sm">
             {risks.slice(0, 3).map((risk) => (
-              <li key={risk.id} className="flex items-start gap-2 rounded-md border p-2">
+              <li
+                key={risk.id}
+                className="flex items-start gap-2 rounded-md border p-2"
+              >
                 <span className="font-medium">{risk.title}</span>
                 <span className="text-muted-foreground">· {risk.severity}</span>
               </li>
             ))}
             {risks.length === 0 && (
-              <li className="text-muted-foreground">No risk data available yet.</li>
+              <li className="text-muted-foreground">
+                No risk data available yet.
+              </li>
             )}
           </ul>
         </CardContent>

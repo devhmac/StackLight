@@ -1,5 +1,5 @@
 import { GitBranch } from "lucide-react";
-import { getRepoBranches, getRepos, getRiskSnapshot } from "@/lib/data";
+import { getRepoDetails, getRepos, getRiskSnapshot } from "@/lib/data";
 import { OverviewContent } from "@/components/repo-digest/overview-content";
 
 interface ProjectOverviewPageProps {
@@ -10,13 +10,10 @@ export default async function ProjectOverviewPage({
   params,
 }: ProjectOverviewPageProps) {
   const { repoId } = await params;
-  const [repos, branches, risks] = await Promise.all([
-    getRepos(),
-    getRepoBranches(repoId),
+  const [repo, risks] = await Promise.all([
+    getRepoDetails(repoId),
     getRiskSnapshot(repoId),
   ]);
-
-  const repo = repos.find((r) => r.id === repoId);
 
   if (!repo) {
     return (
@@ -30,5 +27,5 @@ export default async function ProjectOverviewPage({
     );
   }
 
-  return <OverviewContent repo={repo} branches={branches} risks={risks} />;
+  return <OverviewContent repo={repo} risks={risks} />;
 }

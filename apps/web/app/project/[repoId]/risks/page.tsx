@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import {
   getCollisions,
-  getRepoBranches,
+  getRepoDetails,
   getRepos,
   getRiskSnapshot,
 } from "@/lib/data";
@@ -15,14 +15,12 @@ export default async function ProjectRisksPage({
   params,
 }: ProjectRisksPageProps) {
   const { repoId } = await params;
-  const [repos, branches, risks, collisions] = await Promise.all([
-    getRepos(),
-    getRepoBranches(repoId),
+  const [repo, risks, collisions] = await Promise.all([
+    getRepoDetails(repoId),
     getRiskSnapshot(repoId),
     getCollisions(repoId),
   ]);
 
-  const repo = repos.find((r) => r.id === repoId);
   if (!repo) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -36,6 +34,10 @@ export default async function ProjectRisksPage({
   }
 
   return (
-    <RisksContent branches={branches} risks={risks} collisions={collisions} />
+    <RisksContent
+      branches={repo.branches}
+      risks={risks}
+      collisions={collisions}
+    />
   );
 }

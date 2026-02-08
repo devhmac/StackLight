@@ -1,5 +1,5 @@
 import { GitBranch } from "lucide-react";
-import { getRepoBranches, getTimeline, getRepos } from "@/lib/data";
+import { getTimeline, getRepos, getRepoDetails } from "@/lib/data";
 import { TimelineContent } from "@/components/repo-digest/timeline-content";
 
 interface ProjectTimelinePageProps {
@@ -10,13 +10,11 @@ export default async function ProjectTimelinePage({
   params,
 }: ProjectTimelinePageProps) {
   const { repoId } = await params;
-  const [repos, branches, timeline] = await Promise.all([
-    getRepos(),
-    getRepoBranches(repoId),
+  const [repo, timeline] = await Promise.all([
+    getRepoDetails(repoId),
     getTimeline(repoId),
   ]);
 
-  const repo = repos.find((r) => r.id === repoId);
   if (!repo) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -29,5 +27,5 @@ export default async function ProjectTimelinePage({
     );
   }
 
-  return <TimelineContent branches={branches} timeline={timeline} />;
+  return <TimelineContent branches={repo.branches} timeline={timeline} />;
 }
