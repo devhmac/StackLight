@@ -2,7 +2,7 @@ import { Context } from "hono";
 import { HttpError } from "../../lib/http-errors";
 import { digestRepository } from "../../data/repositories/repo-digest.repository";
 import { isGitRepo } from "../../lib/git";
-import { addNewRepo } from "../../services/git.service";
+import { addNewRepo, getAllBranches } from "../../services/git.service";
 
 export const ReposController = {
   async listRepos(c: Context) {
@@ -12,12 +12,16 @@ export const ReposController = {
 
   async getRepoDetails(c: Context) {
     const id = c.req.param("id");
+
     const repo = await digestRepository.getRepoById(id);
 
     if (!repo) {
       throw HttpError.notFound();
     }
-    return c.json({ data: repo });
+
+    const branchData = await getAllBranches(repo.path);
+
+    return c.json({ data: { ...repo, ...branchData } });
   },
   async addRepo(c: Context) {
     const { path } = await c.req.json<{ path: string }>();

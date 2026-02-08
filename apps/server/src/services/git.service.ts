@@ -15,7 +15,6 @@ export async function getAllBranches(
   }[] = [];
   const branchData = await Promise.all(
     branches.map(async (branch) => {
-      console.log(branch);
       try {
         // if (
         //   branch.name.replace("origin/", "") === originDefault ||
@@ -46,18 +45,18 @@ export async function getAllBranches(
     }),
   );
   return {
-    data: branchData.filter((branch) => branch !== null),
+    branches: branchData.filter((branch) => branch !== null),
     errors: branchErrors.length > 0 ? branchErrors : null,
   };
 }
 
 export async function addNewRepo(repoPath: string, digestJson = {}) {
   // Assumes Repository/path is valid because controller checks
-  // const name = await gitRepository.getRepoName(repoPath);
+  const name = await gitRepository.getRepoName(repoPath);
   const newRepoId = randomUUIDv7();
   const newRepoData = {
     id: newRepoId,
-    name: null,
+    name: name,
     path: repoPath,
     lastSeen: {
       lastSeenTimestamp: new Date().toISOString(),

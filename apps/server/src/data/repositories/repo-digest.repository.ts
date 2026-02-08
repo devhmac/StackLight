@@ -25,7 +25,7 @@ export const digestRepository: IDigestRepository = {
         repoPath: validated.path,
         lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
         lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
-        digestJson: JSON.stringify(validated),
+        digestJson: JSON.stringify(validated.digestJson),
       })
       .onConflictDoUpdate({
         target: repoDigests.repoId,
@@ -33,10 +33,11 @@ export const digestRepository: IDigestRepository = {
           repoPath: validated.path,
           lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
           lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
-          digestJson: JSON.stringify(validated),
+          digestJson: JSON.stringify(validated.digestJson),
           updatedAt: new Date().toISOString(),
         },
-      });
+      })
+      .run();
   },
   async getRepoById(repoId: string): Promise<RegisteredRepository | null> {
     const row = db
@@ -60,7 +61,6 @@ export const digestRepository: IDigestRepository = {
   },
   async getAllRepos(): Promise<RegisteredRepository[]> {
     const rows = db.select().from(repoDigests).all();
-    console.log(rows);
     return rows.map(rowToRepoMapper);
   },
   async delete(repoId: string): Promise<boolean> {

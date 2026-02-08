@@ -6,6 +6,7 @@ export const repoDigests = sqliteTable("repo_digests", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   repoId: text("repo_id").notNull().unique(),
   repoPath: text("repo_path").notNull().unique(),
+  repoName: text("repo_name"),
   lastSeenCommit: text("last_seen_commit"),
   lastSeenTimestamp: text("last_seen_timestamp"),
   digestJson: text("digest_json").notNull().default("{}"),
@@ -59,6 +60,7 @@ export const rowToRepoMapper = (row: RepoDigestRow) => {
   return RegisteredRepositorySchema.parse({
     id: row.repoId,
     path: row.repoPath,
+    name: row.repoName,
     lastSeen: row.lastSeenCommit
       ? {
           lastSeenCommit: row.lastSeenCommit,
