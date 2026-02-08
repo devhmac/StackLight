@@ -1,9 +1,4 @@
-import type {
-  Repo,
-  RepoDigest,
-  AddRepoRequest,
-  MarkSeenRequest,
-} from "@/types/digest";
+import type { RepoSummary, AddRepoRequest, MarkSeenRequest } from "@/types/digest";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -42,26 +37,23 @@ async function fetchApi<T>(
 }
 
 // ========== Repo API ==========
-export async function getRepos(): Promise<Repo[]> {
-  return fetchApi<Repo[]>("/api/repos");
+export async function getRepos(): Promise<RepoSummary[]> {
+  const { data } = await fetchApi<{ data: RepoSummary[] }>("/api/repos");
+  return data;
 }
 
-export async function addRepo(data: AddRepoRequest): Promise<Repo> {
-  return fetchApi<Repo>("/api/repos", {
+export async function addRepo(data: AddRepoRequest): Promise<RepoSummary> {
+  const response = await fetchApi<{ data: RepoSummary }>("/api/repos", {
     method: "POST",
     body: JSON.stringify(data),
   });
+  return response.data;
 }
 
 export async function deleteRepo(id: string): Promise<void> {
   await fetchApi<void>(`/api/repos/${id}`, {
     method: "DELETE",
   });
-}
-
-// ========== Digest API ==========
-export async function getRepoDigest(repoId: string): Promise<RepoDigest> {
-  return fetchApi<RepoDigest>(`/api/repos/${repoId}/digest`);
 }
 
 export async function markSeen(

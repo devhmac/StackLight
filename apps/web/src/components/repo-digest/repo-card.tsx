@@ -22,10 +22,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Repo } from "@/types/digest";
+import type { RepoSummary } from "@/types/digest";
 
 interface RepoCardProps {
-  repo: Repo;
+  repo: RepoSummary;
   isSelected?: boolean;
   onSelect?: () => void;
   onDelete?: () => Promise<boolean>;
@@ -61,7 +61,7 @@ export function RepoCard({
         <CardAction>
           <div className="flex gap-1">
             <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
-              <Link href={`/digest/repos/${repo.id}`}>
+              <Link href={`/project/${repo.id}/details`}>
                 <ExternalLink className="h-4 w-4" />
               </Link>
             </Button>

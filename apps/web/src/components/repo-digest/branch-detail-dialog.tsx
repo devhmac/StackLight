@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import type { Branch, BranchDetail, FileDiff } from "@/types/digest";
+import type { UiBranch, BranchDetail, FileDiff } from "@/types/digest";
 import { getBranchDetail } from "@/lib/data";
 
 interface BranchDetailDialogProps {
-  branch: Branch | null;
-  allBranches: Branch[];
+  branch: UiBranch | null;
+  allBranches: UiBranch[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -101,7 +101,7 @@ function DirectoryGroup({
       </button>
       {expanded && (
         <div className="bg-muted/30 pb-1">
-          {files.map((file) => {
+          {files.map((file: FileDiff) => {
             const fileName = file.path.split("/").pop() ?? file.path;
             return (
               <div
@@ -156,9 +156,10 @@ export function BranchDetailDialog({
     for (const other of allBranches) {
       if (other.name === branch.name) continue;
 
-      const sharedFiles = branch.filesChanged.filter((file) =>
-        other.filesChanged.includes(file)
-      );
+      const sharedFiles =
+        branch.filesChanged?.filter((file) =>
+          (other.filesChanged ?? []).includes(file)
+        ) ?? [];
 
       if (sharedFiles.length > 0) {
         conflicts.push({ branch: other.name, sharedFiles });
@@ -169,14 +170,14 @@ export function BranchDetailDialog({
   }, [branch, allBranches]);
 
   // Group files by directory
-  const groupedFiles = useMemo(() => {
+  const groupedFiles = useMemo<FilesByDirectory>(() => {
     if (!detail?.files) return {};
     return groupFilesByDirectory(detail.files);
   }, [detail?.files]);
 
   if (!branch) return null;
 
-  const divergence = getDivergenceLevel(branch.commitsBehind);
+  const divergence = getDivergenceLevel(branch.commitsBehind ?? 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -212,7 +213,7 @@ export function BranchDetailDialog({
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1.5">
             <FileCode className="text-muted-foreground h-4 w-4" />
-            <span className="font-medium">{branch.filesChanged.length}</span>
+            <span className="font-medium">{branch.filesChanged?.length ?? 0}</span>
             <span className="text-muted-foreground">files</span>
           </div>
           {detail && (
@@ -221,11 +222,11 @@ export function BranchDetailDialog({
               <div className="flex items-center gap-1.5">
                 <Plus className="h-4 w-4 text-green-600 dark:text-green-400" />
                 <span className="font-medium text-green-600 dark:text-green-400">
-                  {detail.linesAdded.toLocaleString()}
+                  {(detail.linesAdded ?? 0).toLocaleString()}
                 </span>
                 <Minus className="h-4 w-4 text-red-600 dark:text-red-400" />
                 <span className="font-medium text-red-600 dark:text-red-400">
-                  {detail.linesRemoved.toLocaleString()}
+                  {(detail.linesRemoved ?? 0).toLocaleString()}
                 </span>
               </div>
             </>
@@ -233,7 +234,7 @@ export function BranchDetailDialog({
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1.5">
             <Badge variant={divergence.variant} className="text-xs">
-              {branch.commitsBehind} behind
+              {branch.commitsBehind ?? 0} behind
             </Badge>
           </div>
         </div>
@@ -275,7 +276,7 @@ export function BranchDetailDialog({
             <div>
               <h3 className="mb-2 text-sm font-medium">Recent Commits</h3>
               <div className="space-y-1 rounded-lg border">
-                {detail.recentCommits.slice(0, 5).map((commit) => (
+                {(detail.recentCommits ?? []).slice(0, 5).map((commit) => (
                   <div
                     key={commit.sha}
                     className="flex items-center gap-3 border-b px-3 py-2 last:border-b-0"
@@ -299,16 +300,18 @@ export function BranchDetailDialog({
             {/* Files changed grouped by directory */}
             <div>
               <h3 className="mb-2 text-sm font-medium">
-                Files Changed ({detail.files.length})
+                Files Changed ({detail.files?.length ?? 0})
               </h3>
               <div className="rounded-lg border">
-                {Object.entries(groupedFiles).map(([directory, files]) => (
+                {Object.entries(groupedFiles).map(
+                  ([directory, files]: [string, FileDiff[]]) => (
                   <DirectoryGroup
                     key={directory}
                     directory={directory}
                     files={files}
                   />
-                ))}
+                  ),
+                )}
               </div>
             </div>
           </>

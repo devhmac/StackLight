@@ -27,39 +27,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { Repo } from "@/types/digest";
-
-const navItems = [
-  {
-    title: "Overview",
-    href: "/digest",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Timeline",
-    href: "/digest/timeline",
-    icon: GitBranch,
-  },
-  {
-    title: "Risks",
-    href: "/digest/risks",
-    icon: AlertTriangle,
-  },
-  {
-    title: "Repos",
-    href: "/digest/repos",
-    icon: FolderGit2,
-  },
-];
+import type { RepoSummary } from "@/types/digest";
 
 interface DigestSidebarProps {
-  repos: Repo[];
+  repos: RepoSummary[];
   selectedRepoId: string | null;
 }
 
 export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
   const pathname = usePathname();
   const selectedRepo = repos.find((r) => r.id === selectedRepoId);
+  const basePath = selectedRepoId ? `/project/${selectedRepoId}` : "/project";
+
+  const navItems = selectedRepoId
+    ? [
+        {
+          title: "Overview",
+          href: basePath,
+          icon: LayoutDashboard,
+        },
+        {
+          title: "Timeline",
+          href: `${basePath}/timeline`,
+          icon: GitBranch,
+        },
+        {
+          title: "Risks",
+          href: `${basePath}/risks`,
+          icon: AlertTriangle,
+        },
+        {
+          title: "Repos",
+          href: "/project",
+          icon: FolderGit2,
+        },
+      ]
+    : [
+        {
+          title: "Repos",
+          href: "/project",
+          icon: FolderGit2,
+        },
+      ];
 
   return (
     <Sidebar>
@@ -94,7 +103,7 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
               >
                 {repos.map((repo) => (
                   <DropdownMenuItem key={repo.id} asChild className="gap-2 p-2">
-                    <Link href={`/digest?repo=${repo.id}`}>
+                    <Link href={`/project/${repo.id}`}>
                       <div className="flex size-6 items-center justify-center rounded-sm border">
                         <FolderGit2 className="size-4 shrink-0" />
                       </div>
@@ -103,7 +112,7 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
                   </DropdownMenuItem>
                 ))}
                 <DropdownMenuItem asChild className="gap-2 p-2">
-                  <Link href="/digest/repos">
+                  <Link href="/project">
                     <div className="bg-background flex size-6 items-center justify-center rounded-md border">
                       <span className="text-muted-foreground">+</span>
                     </div>
@@ -122,9 +131,9 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
             <SidebarMenu>
               {navItems.map((item) => {
                 const isActive =
-                  item.href === "/digest"
-                    ? pathname === "/digest"
-                    : pathname.startsWith(item.href);
+                  item.href === "/project"
+                    ? pathname === "/project"
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>

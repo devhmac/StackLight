@@ -9,6 +9,12 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@repo/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@repo/types/*": [
+        "../../packages/types/src/*"
       ]
     }
   },
@@ -20,6 +26,7 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/mocks/**"
   ]
 }

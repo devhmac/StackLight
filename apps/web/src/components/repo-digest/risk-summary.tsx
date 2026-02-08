@@ -5,11 +5,11 @@ import { AlertTriangle, ArrowRight } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { RiskAlert } from "@/types/digest";
+import type { RiskItem } from "@/types/digest";
 import { cn } from "@/lib/utils";
 
 interface RiskSummaryProps {
-  risks: RiskAlert[];
+  risks: RiskItem[];
   maxItems?: number;
 }
 
@@ -63,7 +63,7 @@ export function RiskSummary({ risks, maxItems = 3 }: RiskSummaryProps) {
       ))}
       {remainingCount > 0 && (
         <Button variant="ghost" size="sm" asChild className="w-full">
-          <Link href="/digest/risks">
+          <Link href="/project">
             View {remainingCount} more {remainingCount === 1 ? "risk" : "risks"}
             <ArrowRight className="ml-1 h-4 w-4" />
           </Link>

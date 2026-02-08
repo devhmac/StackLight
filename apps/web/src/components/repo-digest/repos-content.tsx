@@ -2,13 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { FolderGit2 } from "lucide-react";
-import type { Repo } from "@/types/digest";
+import type { RepoSummary } from "@/types/digest";
 import { useRepoActions } from "@/hooks/use-digest";
 import { RepoCard } from "./repo-card";
 import { AddRepoDialog } from "./add-repo-dialog";
 
 interface ReposContentProps {
-  repos: Repo[];
+  repos: RepoSummary[];
   selectedRepoId: string | null;
 }
 
@@ -33,7 +33,7 @@ export function ReposContent({ repos, selectedRepoId }: ReposContentProps) {
   };
 
   const handleSelectRepo = (repoId: string) => {
-    router.push(`/digest?repo=${repoId}`);
+    router.push(`/project/${repoId}`);
   };
 
   if (repos.length === 0) {

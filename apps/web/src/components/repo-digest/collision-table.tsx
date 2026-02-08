@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { CollisionPair } from "@/types/digest";
+import type { CollisionItem } from "@/types/digest";
 
 interface CollisionTableProps {
-  collisions: CollisionPair[];
+  collisions: CollisionItem[];
   onBranchClick?: (branchName: string) => void;
 }
 

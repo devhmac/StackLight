@@ -5,33 +5,32 @@ import { AlertTriangle, GitMerge, Clock, GitFork, Expand } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import type { RepoDigest, RiskType, Branch } from "@/types/digest";
+import type { CollisionItem, RiskItem, RiskType, UiBranch } from "@/types/digest";
 import { RiskList } from "./risk-list";
 import { CollisionTable } from "./collision-table";
 import { BranchDetailDialog } from "./branch-detail-dialog";
+import { DemoNotice } from "./demo-notice";
 
 interface RisksContentProps {
-  digest: RepoDigest;
+  branches: UiBranch[];
+  risks: RiskItem[];
+  collisions: CollisionItem[];
 }
 
-export function RisksContent({ digest }: RisksContentProps) {
-  const { risks, collisions, activeBranches } = digest;
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+export function RisksContent({ branches, risks, collisions }: RisksContentProps) {
+  const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleBranchClick = (branch: Branch) => {
+  const handleBranchClick = (branch: UiBranch) => {
     setSelectedBranch(branch);
     setDialogOpen(true);
   };
 
   const handleBranchNameClick = (branchName: string) => {
-    const branch = activeBranches.find((b) => b.name === branchName);
-    if (branch) {
-      handleBranchClick(branch);
-    }
+    const branch = branches.find((b) => b.name === branchName);
+    if (branch) handleBranchClick(branch);
   };
 
-  // Count risks by type
   const riskCounts: Record<RiskType, number> = {
     divergence: risks.filter((r) => r.type === "divergence").length,
     collision: risks.filter((r) => r.type === "collision").length,
@@ -39,17 +38,16 @@ export function RisksContent({ digest }: RisksContentProps) {
     scope_creep: risks.filter((r) => r.type === "scope_creep").length,
   };
 
-  // Count by severity
   const highCount = risks.filter((r) => r.severity === "high").length;
   const mediumCount = risks.filter((r) => r.severity === "medium").length;
   const lowCount = risks.filter((r) => r.severity === "low").length;
 
-  // Stale branches list
-  const staleBranches = activeBranches.filter((b) => b.isStale);
+  const staleBranches = branches.filter((b) => b.isStale);
 
   return (
     <div className="space-y-6">
-      {/* Risk summary cards */}
+      <DemoNotice message="Risks and collisions are demo-only until backend endpoints land." />
+
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="gap-2 py-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -57,9 +55,7 @@ export function RisksContent({ digest }: RisksContentProps) {
             <AlertTriangle className="text-destructive h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-destructive text-2xl font-bold">
-              {highCount}
-            </div>
+            <div className="text-destructive text-2xl font-bold">{highCount}</div>
           </CardContent>
         </Card>
         <Card className="gap-2 py-4">
@@ -86,9 +82,7 @@ export function RisksContent({ digest }: RisksContentProps) {
         </Card>
         <Card className="gap-2 py-4">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              File Collisions
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">File Collisions</CardTitle>
             <GitMerge className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
@@ -97,12 +91,11 @@ export function RisksContent({ digest }: RisksContentProps) {
         </Card>
       </div>
 
-      {/* Risk alerts with tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            Risk Alerts
+            Risk Alerts (demo)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -162,12 +155,11 @@ export function RisksContent({ digest }: RisksContentProps) {
         </CardContent>
       </Card>
 
-      {/* Collision pairs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GitMerge className="h-5 w-5" />
-            File Collision Details
+            File Collision Details (demo)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -175,7 +167,6 @@ export function RisksContent({ digest }: RisksContentProps) {
         </CardContent>
       </Card>
 
-      {/* Stale branches */}
       {staleBranches.length > 0 && (
         <Card>
           <CardHeader>
@@ -194,18 +185,11 @@ export function RisksContent({ digest }: RisksContentProps) {
                 >
                   <div>
                     <p className="font-medium">{branch.name}</p>
-                    <p className="text-muted-foreground text-sm">
-                      by {branch.author}
-                    </p>
+                    <p className="text-muted-foreground text-sm">by {branch.author}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <p className="text-muted-foreground text-sm">
-                        {branch.staleDays} days inactive
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {branch.commitsBehind} commits behind
-                      </p>
+                      <p className="text-muted-foreground text-sm">commits behind: {branch.commitsBehind ?? 0}</p>
                     </div>
                     <Badge variant="secondary">Stale</Badge>
                   </div>
@@ -218,7 +202,7 @@ export function RisksContent({ digest }: RisksContentProps) {
 
       <BranchDetailDialog
         branch={selectedBranch}
-        allBranches={activeBranches}
+        allBranches={branches}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
       />

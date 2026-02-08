@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Repo } from "@/types/digest";
-
-// Set to true to use mock data, false for real API
-const USE_MOCK_DATA = true;
+import type { RepoSummary } from "@/types/digest";
 
 // ========== useRepoActions Hook ==========
 // Client-side mutations only - data fetching happens server-side
 interface UseRepoActionsResult {
-  addRepo: (path: string) => Promise<Repo | null>;
+  addRepo: (path: string) => Promise<RepoSummary | null>;
   deleteRepo: (id: string) => Promise<boolean>;
   isPending: boolean;
   error: Error | null;
@@ -19,23 +16,14 @@ export function useRepoActions(): UseRepoActionsResult {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const addRepo = useCallback(async (path: string): Promise<Repo | null> => {
+  const addRepo = useCallback(async (path: string): Promise<RepoSummary | null> => {
     setError(null);
     setIsPending(true);
 
     try {
-      if (USE_MOCK_DATA) {
-        const newRepo: Repo = {
-          id: `repo-${Date.now()}`,
-          name: path.split("/").pop() || "unknown",
-          path,
-        };
-        // In real implementation, this would call revalidatePath after mutation
-        return newRepo;
-      } else {
-        const { addRepo: apiAddRepo } = await import("@/lib/api");
-        return await apiAddRepo({ path });
-      }
+      const { addRepo: apiAddRepo } = await import("@/lib/api");
+      const repo = await apiAddRepo({ path });
+      return repo as RepoSummary;
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Failed to add repo");
       setError(error);
@@ -50,14 +38,9 @@ export function useRepoActions(): UseRepoActionsResult {
     setIsPending(true);
 
     try {
-      if (USE_MOCK_DATA) {
-        // In real implementation, this would call revalidatePath after mutation
-        return true;
-      } else {
-        const { deleteRepo: apiDeleteRepo } = await import("@/lib/api");
-        await apiDeleteRepo(id);
-        return true;
-      }
+      const { deleteRepo: apiDeleteRepo } = await import("@/lib/api");
+      await apiDeleteRepo(id);
+      return true;
     } catch (err) {
       const error =
         err instanceof Error ? err : new Error("Failed to delete repo");
@@ -94,16 +77,9 @@ export function useMarkSeen(): UseMarkSeenResult {
       setIsPending(true);
 
       try {
-        if (USE_MOCK_DATA) {
-          // Simulate marking as seen
-          await new Promise((resolve) => setTimeout(resolve, 200));
-          // In real implementation, this would call revalidatePath after mutation
-          return true;
-        } else {
-          const { markSeen: apiMarkSeen } = await import("@/lib/api");
-          await apiMarkSeen(repoId, { commit: commitSha });
-          return true;
-        }
+        const { markSeen: apiMarkSeen } = await import("@/lib/api");
+        await apiMarkSeen(repoId, { commit: commitSha });
+        return true;
       } catch (err) {
         const error =
           err instanceof Error ? err : new Error("Failed to mark as seen");

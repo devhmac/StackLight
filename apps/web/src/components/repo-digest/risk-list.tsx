@@ -3,11 +3,11 @@
 import { AlertTriangle, Lightbulb } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import type { RiskAlert, RiskType } from "@/types/digest";
+import type { RiskItem, RiskType } from "@/types/digest";
 import { cn } from "@/lib/utils";
 
 interface RiskListProps {
-  risks: RiskAlert[];
+  risks: RiskItem[];
   filterType?: RiskType | "all";
 }
 

@@ -1,20 +1,17 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarInset,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { DigestSidebar } from "./digest-sidebar";
-import type { Repo } from "@/types/digest";
-
-const navTitles: Record<string, string> = {
-  "/digest": "Overview",
-  "/digest/timeline": "Timeline",
-  "/digest/risks": "Risks",
-  "/digest/repos": "Repos",
-};
+import type { RepoSummary } from "@/types/digest";
 
 interface DigestShellProps {
-  repos: Repo[];
+  repos: RepoSummary[];
   selectedRepoId: string | null;
   children: React.ReactNode;
 }
@@ -25,11 +22,18 @@ export function DigestShell({
   children,
 }: DigestShellProps) {
   const pathname = usePathname();
-
-  // Find matching title (handles dynamic routes)
-  const title =
-    navTitles[pathname] ||
-    (pathname.startsWith("/digest/repos/") ? "Repo Detail" : "Digest");
+  const title = (() => {
+    if (pathname === "/project") return "Projects";
+    if (pathname.startsWith("/project/")) {
+      const parts = pathname.split("/").filter(Boolean);
+      const section = parts[2] ?? "overview";
+      if (section === "timeline") return "Timeline";
+      if (section === "risks") return "Risks";
+      if (section === "details") return "Details";
+      return "Overview";
+    }
+    return "Digest";
+  })();
 
   return (
     <SidebarProvider>

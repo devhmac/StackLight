@@ -1,27 +1,30 @@
 import { cache } from "react";
-import type { Repo, RepoDigest, BranchDetail } from "@/types/digest";
-import {
-  mockRepos,
-  getMockDigestByRepoId,
-  getMockBranchDetail,
-} from "@/mocks/digest-mock";
+import type {
+  BranchDetail,
+  CollisionItem,
+  DataSource,
+  RepoSummary,
+  RiskItem,
+  TimelinePoint,
+  UiBranch,
+} from "@/types/digest";
+import { demoBranchDetail, demoCollisions, demoRisks, demoTimeline } from "./demo-data";
 
-// Set to true to use mock data, false for real API
-const USE_MOCK_DATA = true;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
-// Per-request deduplication with React.cache()
-// Multiple components calling these functions in the same request will share the result
+// ===== Helpers =====
+export function selectRepoId(
+  searchParams?: { repo?: string },
+  repos?: RepoSummary[],
+): string | null {
+  return searchParams?.repo ?? repos?.[0]?.id ?? null;
+}
 
-export const getRepos = cache(async (): Promise<Repo[]> => {
-  // if (USE_MOCK_DATA) {
-  //   // Simulate network delay
-  //   await new Promise((resolve) => setTimeout(resolve, 100));
-  //   return mockRepos;
-  // }
+// ===== Data Fetchers =====
 
+export const getRepos = cache(async (): Promise<RepoSummary[]> => {
   const response = await fetch(`${API_BASE_URL}/api/repos`, {
-    // next: { revalidate: 60 }, // Cache for 60 seconds
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -29,54 +32,65 @@ export const getRepos = cache(async (): Promise<Repo[]> => {
   }
 
   const { data } = await response.json();
-
   return data;
 });
 
-export const getRepoDigest = cache(
-  async (repoId: string): Promise<RepoDigest | null> => {
-    // if (USE_MOCK_DATA) {
-    //   // Simulate network delay
-    //   await new Promise((resolve) => setTimeout(resolve, 200));
-    //   return getMockDigestByRepoId(repoId);
-    // }
-
+export const getRepoBranches = cache(
+  async (repoId: string): Promise<UiBranch[]> => {
     const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
-      // next: { revalidate: 30 }, // Cache for 30 seconds
+      cache: "no-store",
     });
 
     if (!response.ok) {
-      if (response.status === 404) {
-        return null;
-      }
-      throw new Error(`Failed to fetch digest: ${response.statusText}`);
+      if (response.status === 404) return [];
+      throw new Error(`Failed to fetch repo ${repoId}: ${response.statusText}`);
     }
 
     const { data } = await response.json();
-    console.log(data);
-    return data;
+    const branches: UiBranch[] = (data?.branches ?? []).map((b: UiBranch) => ({
+      filesChanged: [],
+      ...b,
+    }));
+
+    return branches;
   },
 );
 
-// Get the first repo ID (for default selection)
-export const getDefaultRepoId = cache(async (): Promise<string | null> => {
-  const repos = await getRepos();
-  return repos[0]?.id ?? null;
-});
+export const getRiskSnapshot = cache(
+  async (_repoId: string, source: DataSource = "demo"): Promise<RiskItem[]> => {
+    if (source === "api") {
+      // Placeholder for future API endpoint
+      return [];
+    }
+    return demoRisks;
+  },
+);
 
-// Get detailed branch info (on-demand, fetched when dialog opens)
+export const getCollisions = cache(
+  async (_repoId: string, source: DataSource = "demo"): Promise<CollisionItem[]> => {
+    if (source === "api") return [];
+    return demoCollisions;
+  },
+);
+
+export const getTimeline = cache(
+  async (_repoId: string, source: DataSource = "demo"): Promise<TimelinePoint[]> => {
+    if (source === "api") return [];
+    return demoTimeline;
+  },
+);
+
 export const getBranchDetail = cache(
-  async (branchName: string): Promise<BranchDetail | null> => {
-    if (USE_MOCK_DATA) {
-      // Simulate network delay for on-demand fetch
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      return getMockBranchDetail(branchName);
+  async (branchName: string, source: DataSource = "demo"): Promise<BranchDetail | null> => {
+    if (source === "demo") {
+      if (demoBranchDetail.name === branchName) return demoBranchDetail;
+      return { ...demoBranchDetail, name: branchName };
     }
 
     const response = await fetch(
       `${API_BASE_URL}/api/branches/${encodeURIComponent(branchName)}/detail`,
       {
-        next: { revalidate: 30 },
+        cache: "no-store",
       },
     );
 

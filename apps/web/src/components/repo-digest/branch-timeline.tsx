@@ -19,11 +19,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-import type { Branch } from "@/types/digest";
+import type { TimelinePoint, UiBranch } from "@/types/digest";
 import { BranchDetailDialog } from "./branch-detail-dialog";
 
 interface BranchTimelineProps {
-  branches: Branch[];
+  branches: UiBranch[];
+  timeline: TimelinePoint[];
 }
 
 // Define statuses for branch health
@@ -45,13 +46,13 @@ const STATUS_CRITICAL: GanttStatus = {
   color: "hsl(0, 84%, 60%)", // red/destructive
 };
 
-function getBranchStatus(branch: Branch): GanttStatus {
-  if (branch.commitsBehind > 30) return STATUS_CRITICAL;
+function getBranchStatus(branch: UiBranch): GanttStatus {
+  if ((branch.commitsBehind ?? 0) > 30) return STATUS_CRITICAL;
   if (branch.isStale) return STATUS_STALE;
   return STATUS_ACTIVE;
 }
 
-function branchToFeature(branch: Branch): GanttFeature {
+function branchToFeature(branch: UiBranch): GanttFeature {
   return {
     id: branch.name,
     name: branch.name.replace(/^(feature|fix|chore|experiment)\//, ""),
@@ -61,18 +62,26 @@ function branchToFeature(branch: Branch): GanttFeature {
   };
 }
 
-export function BranchTimeline({ branches }: BranchTimelineProps) {
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
+  const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleOpenDetail = (branch: Branch) => {
+  const timelineMap = useMemo(() => {
+    const map = new Map<string, TimelinePoint>();
+    for (const item of timeline) {
+      map.set(item.branch, item);
+    }
+    return map;
+  }, [timeline]);
+
+  const handleOpenDetail = (branch: UiBranch) => {
     setSelectedBranch(branch);
     setDialogOpen(true);
   };
 
   // Group branches by prefix (feature/, fix/, etc.)
   const groupedBranches = useMemo(() => {
-    const groups = new Map<string, Branch[]>([
+    const groups = new Map<string, UiBranch[]>([
       ["feature", []],
       ["fix", []],
       ["chore", []],
@@ -127,17 +136,27 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
 
       {/* Gantt Chart */}
       <div className="h-[500px] overflow-hidden rounded-lg border">
-        <GanttProvider range="monthly" zoom={100}>
+        <GanttProvider range="daily" zoom={100}>
           <GanttSidebar>
             {groupedBranches.map(([groupName, groupBranches]) => (
               <GanttSidebarGroup key={groupName} name={groupName}>
-                {groupBranches.map((branch) => (
-                  <GanttSidebarItem
-                    key={branch.name}
-                    feature={branchToFeature(branch)}
-                    onSelectItem={handleSelectItem}
-                  />
-                ))}
+                {groupBranches.map((branch) => {
+                  const override = timelineMap.get(branch.name);
+                  const feature = override
+                    ? {
+                        ...branchToFeature(branch),
+                        startAt: new Date(override.startedAt),
+                        endAt: new Date(override.lastCommitAt),
+                      }
+                    : branchToFeature(branch);
+                  return (
+                    <GanttSidebarItem
+                      key={branch.name}
+                      feature={feature}
+                      onSelectItem={handleSelectItem}
+                    />
+                  );
+                })}
               </GanttSidebarGroup>
             ))}
           </GanttSidebar>
@@ -146,27 +165,34 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
             <GanttFeatureList>
               {groupedBranches.map(([groupName, groupBranches]) => (
                 <GanttFeatureListGroup key={groupName}>
-                  {groupBranches.map((branch) => (
-                    <GanttFeatureItem
-                      key={branch.name}
-                      {...branchToFeature(branch)}
-                    >
-                      <div className="flex items-center gap-2 overflow-hidden">
-                        <div
-                          className="h-2 w-2 shrink-0 rounded-full"
-                          style={{
-                            backgroundColor: getBranchStatus(branch).color,
-                          }}
-                        />
-                        <span className="truncate text-xs">
-                          {branch.name.replace(
-                            /^(feature|fix|chore|experiment)\//,
-                            "",
-                          )}
-                        </span>
-                      </div>
-                    </GanttFeatureItem>
-                  ))}
+                  {groupBranches.map((branch) => {
+                    const override = timelineMap.get(branch.name);
+                    const feature = override
+                      ? {
+                          ...branchToFeature(branch),
+                          startAt: new Date(override.startedAt),
+                          endAt: new Date(override.lastCommitAt),
+                        }
+                      : branchToFeature(branch);
+                    return (
+                      <GanttFeatureItem key={branch.name} {...feature}>
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <div
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: getBranchStatus(branch).color,
+                            }}
+                          />
+                          <span className="truncate text-xs">
+                            {branch.name.replace(
+                              /^(feature|fix|chore|experiment)\//,
+                              "",
+                            )}
+                          </span>
+                        </div>
+                      </GanttFeatureItem>
+                    );
+                  })}
                 </GanttFeatureListGroup>
               ))}
             </GanttFeatureList>
@@ -190,7 +216,7 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
               {selectedBranch.isStale && (
                 <Badge variant="secondary">Stale</Badge>
               )}
-              {selectedBranch.commitsBehind > 30 && (
+              {(selectedBranch.commitsBehind ?? 0) > 30 && (
                 <Badge variant="destructive">Critical</Badge>
               )}
               <Button
@@ -212,18 +238,18 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
               <p className="text-muted-foreground">Commits Behind</p>
               <p
                 className={
-                  selectedBranch.commitsBehind > 30
+                  (selectedBranch.commitsBehind ?? 0) > 30
                     ? "text-destructive font-medium"
                     : "font-medium"
                 }
               >
-                {selectedBranch.commitsBehind}
+                {selectedBranch.commitsBehind ?? 0}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">Files Changed</p>
               <p className="font-medium">
-                {selectedBranch.filesChanged.length}
+                {selectedBranch.filesChanged?.length ?? 0}
               </p>
             </div>
             <div>
@@ -236,24 +262,26 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
               </p>
             </div>
           </div>
-          {selectedBranch.filesChanged.length > 0 && (
+          {(selectedBranch.filesChanged?.length ?? 0) > 0 && (
             <div className="mt-3">
               <p className="text-muted-foreground mb-1 text-sm">
                 Files touched:
               </p>
               <div className="flex flex-wrap gap-1">
-                {selectedBranch.filesChanged.slice(0, 5).map((file) => (
-                  <Badge
-                    key={file}
-                    variant="outline"
-                    className="font-mono text-xs"
-                  >
-                    {file.split("/").pop()}
-                  </Badge>
-                ))}
-                {selectedBranch.filesChanged.length > 5 && (
+                {selectedBranch.filesChanged
+                  ?.slice(0, 5)
+                  .map((file: string) => (
+                    <Badge
+                      key={file}
+                      variant="outline"
+                      className="font-mono text-xs"
+                    >
+                      {file.split("/").pop()}
+                    </Badge>
+                  ))}
+                {(selectedBranch.filesChanged?.length ?? 0) > 5 && (
                   <Badge variant="outline" className="text-xs">
-                    +{selectedBranch.filesChanged.length - 5} more
+                    +{(selectedBranch.filesChanged?.length ?? 0) - 5} more
                   </Badge>
                 )}
               </div>

@@ -1,43 +1,51 @@
-// ========== Core Types ==========
-export interface Repo {
+import type { BranchInfo } from "@repo/types/git";
+
+// Core repo metadata returned by /api/repos
+export interface RepoSummary {
   id: string;
   name: string;
   path: string;
+  lastSeen?: {
+    lastSeenCommit: string;
+    lastSeenTimestamp: string;
+  } | null;
 }
 
-export interface Commit {
-  sha: string;
-  message: string;
-  author: string;
-  timestamp: string; // ISO 8601
-  filesChanged: number;
+// UI-friendly branch type that extends the backend shape with optional flags
+export type UiBranch = BranchInfo & {
+  isStale?: boolean;
+  isNew?: boolean;
+  filesChanged?: string[];
+};
+
+// Optional detail payload for branch dialog (demo-friendly today)
+export interface BranchDetail extends UiBranch {
+  linesAdded?: number;
+  linesRemoved?: number;
+  recentCommits?: Array<{
+    sha: string;
+    message: string;
+    author?: string;
+    timestamp: string;
+  }>;
+  files?: Array<{
+    path: string;
+    added: number;
+    removed: number;
+  }>;
 }
 
-export interface Contributor {
-  name: string;
-  commitCount: number;
+export interface FileDiff {
+  path: string;
+  added: number;
+  removed: number;
 }
 
-// ========== Extended Branch ==========
-export interface Branch {
-  name: string;
-  author: string;
-  lastCommitMessage: string;
-  lastCommitTimestamp: string; // ISO timestamp
-  commitsAhead: number;
-  commitsBehind: number; // divergence from main
-  // isNew: boolean;
-  // isStale: boolean; // no activity in X days
-  // staleDays?: number; // days since last commit
-  forkedAt: string; // timestamp when branch forked from main
-  // filesChanged: string[]; // list of files touched (for collision detection)
-}
-
-// ========== Risk Detection ==========
+// Risk & collision demo types
 export type RiskSeverity = "high" | "medium" | "low";
 export type RiskType = "divergence" | "collision" | "stale" | "scope_creep";
 
-export interface RiskAlert {
+export interface RiskItem {
   id: string;
   type: RiskType;
   severity: RiskSeverity;
@@ -48,26 +56,58 @@ export interface RiskAlert {
   suggestedAction?: string;
 }
 
-export interface CollisionPair {
+export interface CollisionItem {
   branchA: string;
   branchB: string;
   overlappingFiles: string[];
   conflictLikelihood: "high" | "medium" | "low";
 }
 
-// ========== Churn & Hotspots ==========
+export interface TimelinePoint {
+  branch: string;
+  startedAt: string; // ISO
+  lastCommitAt: string; // ISO
+  commitsAhead: number;
+  commitsBehind: number;
+}
+
+export type DataSource = "demo" | "api";
+
+// Mutations
+export interface AddRepoRequest {
+  path: string;
+}
+
+export interface MarkSeenRequest {
+  commit: string;
+}
+
+// Legacy aliases (kept for mocks/demo compatibility)
+export type Repo = RepoSummary;
+export interface Commit {
+  sha: string;
+  message: string;
+  author: string;
+  timestamp: string;
+  filesChanged: number;
+}
+export interface Contributor {
+  name: string;
+  commitCount: number;
+}
+export type Branch = UiBranch;
+export type RiskAlert = RiskItem;
+export type CollisionPair = CollisionItem;
 export interface ChurnHotspot {
   path: string;
   changeCount: number;
   contributorCount: number;
   trend: "increasing" | "decreasing" | "stable";
 }
-
-// ========== Stream Organization ==========
 export interface Stream {
   id: string;
   name: string;
-  pattern?: string; // e.g., "feature/checkout-*"
+  pattern?: string;
   branches: string[];
   lead?: string;
   metrics: {
@@ -76,53 +116,4 @@ export interface Stream {
     maxDivergence: number;
   };
 }
-
-// ========== Full Digest Response ==========
-export interface RepoDigest {
-  repo: Repo;
-  lastSeen: { lastSeenCommit: string; lastSeenTimestamp: string } | null;
-  // main: {
-  //   currentHead: string;
-  //   newCommits: Commit[];
-  // };
-  branches: Branch[];
-  // contributors: Contributor[];
-  // risks: RiskAlert[];
-  // collisions: CollisionPair[];
-  // churnHotspots: ChurnHotspot[];
-  // streams: Stream[];
-  // summary: {
-  //   totalBranches: number;
-  //   staleBranchCount: number;
-  //   highRiskCount: number;
-  //   newCommitCount: number;
-  //   activeContributorCount: number;
-  // };
-}
-
-// ========== Branch Detail (on-demand) ==========
-export interface FileDiff {
-  path: string;
-  added: number;
-  removed: number;
-}
-
-export interface BranchDetail extends Branch {
-  linesAdded: number;
-  linesRemoved: number;
-  recentCommits: Commit[];
-  files: FileDiff[];
-}
-
-// ========== API Response Types ==========
-export interface ReposListResponse {
-  repos: Repo[];
-}
-
-export interface MarkSeenRequest {
-  commit: string;
-}
-
-export interface AddRepoRequest {
-  path: string;
-}
+export type RepoDigest = any;

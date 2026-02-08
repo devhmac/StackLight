@@ -1,0 +1,33 @@
+import { GitBranch } from "lucide-react";
+import { getRepoBranches, getTimeline, getRepos } from "@/lib/data";
+import { TimelineContent } from "@/components/repo-digest/timeline-content";
+
+interface ProjectTimelinePageProps {
+  params: Promise<{ repoId: string }>;
+}
+
+export default async function ProjectTimelinePage({
+  params,
+}: ProjectTimelinePageProps) {
+  const { repoId } = await params;
+  const [repos, branches, timeline] = await Promise.all([
+    getRepos(),
+    getRepoBranches(repoId),
+    getTimeline(repoId),
+  ]);
+
+  const repo = repos.find((r) => r.id === repoId);
+  if (!repo) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <GitBranch className="text-muted-foreground/50 mb-4 h-12 w-12" />
+        <h2 className="text-lg font-semibold">Repository not found</h2>
+        <p className="text-muted-foreground mt-1">
+          The selected repository could not be loaded
+        </p>
+      </div>
+    );
+  }
+
+  return <TimelineContent branches={branches} timeline={timeline} />;
+}
