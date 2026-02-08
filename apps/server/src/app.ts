@@ -18,7 +18,7 @@ export const app = new Hono()
   // --- Routes ---
   .route("/", repoRouter)
   .get("/git", async (c) => {
-    const repoPath = c.req.query("repo") || "/Users/devpra/repos/minr";
+    const repoPath = c.req.query("repo") || "/Users/devpra/repos/idify";
     const mainBranch = await gitRepository.getOriginDefaultBranch(repoPath);
     const mainRef = await gitRepository.getMainHead(repoPath);
     console.log("main head ref:", mainBranch);
