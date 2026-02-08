@@ -10,6 +10,7 @@ describe("example test endpoint", () => {
   it("should return test results", async () => {
     // Include the token in the headers and set the content type
     const token = "this-is-an-example-token";
+    // .test. auto inferrs route from hono
     const res = await client.test.$get({
       query: { q: "test" },
       headers: {

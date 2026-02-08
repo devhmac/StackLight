@@ -6,13 +6,13 @@ export const logger = (): MiddlewareHandler => {
     const start = Date.now();
     const requestId = c.get("requestId");
 
-    console.log(`→ [${requestId}] ${c.req.method} ${c.req.path}`);
+    console.log(`→ Start: [${requestId}] ${c.req.method} ${c.req.path}`);
 
     await next();
 
     const duration = Date.now() - start;
     console.log(
-      `← [${requestId}] ${c.req.method} ${c.req.path} ${c.res.status} ${duration}ms`,
+      `← Complete: [${requestId}] ${c.req.method} ${c.req.path} ${c.res.status} ${duration}ms`,
     );
   };
 };

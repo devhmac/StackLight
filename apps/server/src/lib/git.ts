@@ -11,6 +11,8 @@ const ALLOWED_COMMANDS = [
   "merge-base",
   "rev-list",
   "fetch",
+  "show",
+  "remote",
 ];
 
 export async function runGit(
@@ -19,7 +21,7 @@ export async function runGit(
 ): Promise<string> {
   const command = args[0];
 
-  if (!ALLOWED_COMMANDS.includes(command)) {
+  if (command && !ALLOWED_COMMANDS.includes(command)) {
     throw new Error(`Git Command not whitelisted: ${command}`);
   }
 
@@ -43,7 +45,7 @@ export async function runGit(
   return stdout.trim();
 }
 
-async function isGitRepo(repoPath: string): Promise<boolean> {
+export async function isGitRepo(repoPath: string): Promise<boolean> {
   const { exitCode, stdout } =
     await Bun.$`git -C ${repoPath} rev-parse --is-inside-work-tree`.quiet();
   return exitCode === 0 && stdout.toString().trim() === "true";
