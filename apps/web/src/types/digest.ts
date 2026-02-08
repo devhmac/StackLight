@@ -22,14 +22,15 @@ export interface Contributor {
 export interface Branch {
   name: string;
   author: string;
-  lastCommit: string; // ISO timestamp
+  lastCommitMessage: string;
+  lastCommitTimestamp: string; // ISO timestamp
   commitsAhead: number;
   commitsBehind: number; // divergence from main
-  isNew: boolean;
-  isStale: boolean; // no activity in X days
-  staleDays?: number; // days since last commit
+  // isNew: boolean;
+  // isStale: boolean; // no activity in X days
+  // staleDays?: number; // days since last commit
   forkedAt: string; // timestamp when branch forked from main
-  filesChanged: string[]; // list of files touched (for collision detection)
+  // filesChanged: string[]; // list of files touched (for collision detection)
 }
 
 // ========== Risk Detection ==========
@@ -79,24 +80,24 @@ export interface Stream {
 // ========== Full Digest Response ==========
 export interface RepoDigest {
   repo: Repo;
-  lastSeen: { commit: string; timestamp: string } | null;
-  main: {
-    currentHead: string;
-    newCommits: Commit[];
-  };
-  activeBranches: Branch[];
-  contributors: Contributor[];
-  risks: RiskAlert[];
-  collisions: CollisionPair[];
-  churnHotspots: ChurnHotspot[];
-  streams: Stream[];
-  summary: {
-    totalBranches: number;
-    staleBranchCount: number;
-    highRiskCount: number;
-    newCommitCount: number;
-    activeContributorCount: number;
-  };
+  lastSeen: { lastSeenCommit: string; lastSeenTimestamp: string } | null;
+  // main: {
+  //   currentHead: string;
+  //   newCommits: Commit[];
+  // };
+  branches: Branch[];
+  // contributors: Contributor[];
+  // risks: RiskAlert[];
+  // collisions: CollisionPair[];
+  // churnHotspots: ChurnHotspot[];
+  // streams: Stream[];
+  // summary: {
+  //   totalBranches: number;
+  //   staleBranchCount: number;
+  //   highRiskCount: number;
+  //   newCommitCount: number;
+  //   activeContributorCount: number;
+  // };
 }
 
 // ========== Branch Detail (on-demand) ==========

@@ -1,6 +1,10 @@
 import { cache } from "react";
 import type { Repo, RepoDigest, BranchDetail } from "@/types/digest";
-import { mockRepos, getMockDigestByRepoId, getMockBranchDetail } from "@/mocks/digest-mock";
+import {
+  mockRepos,
+  getMockDigestByRepoId,
+  getMockBranchDetail,
+} from "@/mocks/digest-mock";
 
 // Set to true to use mock data, false for real API
 const USE_MOCK_DATA = true;
@@ -10,33 +14,35 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 // Multiple components calling these functions in the same request will share the result
 
 export const getRepos = cache(async (): Promise<Repo[]> => {
-  if (USE_MOCK_DATA) {
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    return mockRepos;
-  }
+  // if (USE_MOCK_DATA) {
+  //   // Simulate network delay
+  //   await new Promise((resolve) => setTimeout(resolve, 100));
+  //   return mockRepos;
+  // }
 
   const response = await fetch(`${API_BASE_URL}/api/repos`, {
-    next: { revalidate: 60 }, // Cache for 60 seconds
+    // next: { revalidate: 60 }, // Cache for 60 seconds
   });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch repos: ${response.statusText}`);
   }
 
-  return response.json();
+  const { data } = await response.json();
+
+  return data;
 });
 
 export const getRepoDigest = cache(
   async (repoId: string): Promise<RepoDigest | null> => {
-    if (USE_MOCK_DATA) {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      return getMockDigestByRepoId(repoId);
-    }
+    // if (USE_MOCK_DATA) {
+    //   // Simulate network delay
+    //   await new Promise((resolve) => setTimeout(resolve, 200));
+    //   return getMockDigestByRepoId(repoId);
+    // }
 
-    const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}/digest`, {
-      next: { revalidate: 30 }, // Cache for 30 seconds
+    const response = await fetch(`${API_BASE_URL}/api/repos/${repoId}`, {
+      // next: { revalidate: 30 }, // Cache for 30 seconds
     });
 
     if (!response.ok) {
@@ -46,8 +52,10 @@ export const getRepoDigest = cache(
       throw new Error(`Failed to fetch digest: ${response.statusText}`);
     }
 
-    return response.json();
-  }
+    const { data } = await response.json();
+    console.log(data);
+    return data;
+  },
 );
 
 // Get the first repo ID (for default selection)
@@ -69,7 +77,7 @@ export const getBranchDetail = cache(
       `${API_BASE_URL}/api/branches/${encodeURIComponent(branchName)}/detail`,
       {
         next: { revalidate: 30 },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -80,5 +88,5 @@ export const getBranchDetail = cache(
     }
 
     return response.json();
-  }
+  },
 );

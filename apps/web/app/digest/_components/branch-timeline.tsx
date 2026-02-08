@@ -56,7 +56,7 @@ function branchToFeature(branch: Branch): GanttFeature {
     id: branch.name,
     name: branch.name.replace(/^(feature|fix|chore|experiment)\//, ""),
     startAt: new Date(branch.forkedAt),
-    endAt: new Date(branch.lastCommit),
+    endAt: new Date(branch.lastCommitTimestamp),
     status: getBranchStatus(branch),
   };
 }
@@ -161,7 +161,7 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
                         <span className="truncate text-xs">
                           {branch.name.replace(
                             /^(feature|fix|chore|experiment)\//,
-                            ""
+                            "",
                           )}
                         </span>
                       </div>
@@ -222,21 +222,32 @@ export function BranchTimeline({ branches }: BranchTimelineProps) {
             </div>
             <div>
               <p className="text-muted-foreground">Files Changed</p>
-              <p className="font-medium">{selectedBranch.filesChanged.length}</p>
+              <p className="font-medium">
+                {selectedBranch.filesChanged.length}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Last Activity</p>
               <p className="font-medium">
-                {format(new Date(selectedBranch.lastCommit), "MMM d, yyyy")}
+                {format(
+                  new Date(selectedBranch.lastCommitTimestamp),
+                  "MMM d, yyyy",
+                )}
               </p>
             </div>
           </div>
           {selectedBranch.filesChanged.length > 0 && (
             <div className="mt-3">
-              <p className="text-muted-foreground mb-1 text-sm">Files touched:</p>
+              <p className="text-muted-foreground mb-1 text-sm">
+                Files touched:
+              </p>
               <div className="flex flex-wrap gap-1">
                 {selectedBranch.filesChanged.slice(0, 5).map((file) => (
-                  <Badge key={file} variant="outline" className="font-mono text-xs">
+                  <Badge
+                    key={file}
+                    variant="outline"
+                    className="font-mono text-xs"
+                  >
                     {file.split("/").pop()}
                   </Badge>
                 ))}

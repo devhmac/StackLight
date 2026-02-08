@@ -1,6 +1,12 @@
 "use client";
 
-import { GitBranch, AlertTriangle, GitCommit, Users, Clock } from "lucide-react";
+import {
+  GitBranch,
+  AlertTriangle,
+  GitCommit,
+  Users,
+  Clock,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RepoDigest } from "@/types/digest";
 import { MetricCard } from "./metric-card";
@@ -14,12 +20,13 @@ interface OverviewContentProps {
 }
 
 export function OverviewContent({ digest }: OverviewContentProps) {
-  const { repo, summary, risks, main, churnHotspots } = digest;
+  const { repo, branches } = digest;
+  // const { repo, summary, risks, main, churnHotspots } = digest;
 
   return (
     <div className="space-y-6">
       {/* New commits banner */}
-      {summary.newCommitCount > 0 && (
+      {/* {summary.newCommitCount > 0 && (
         <Card className="border-primary/50 bg-primary/5">
           <CardContent className="flex items-center justify-between py-4">
             <div className="flex items-center gap-3">
@@ -44,32 +51,37 @@ export function OverviewContent({ digest }: OverviewContentProps) {
             />
           </CardContent>
         </Card>
-      )}
+      )} */}
 
       {/* Key metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Active Branches"
-          value={summary.totalBranches}
-          description={`${summary.staleBranchCount} stale`}
+          value={branches.length}
+          // description={`${summary.staleBranchCount} stale`}
           icon={<GitBranch className="h-4 w-4" />}
         />
         <MetricCard
           title="Risk Alerts"
-          value={summary.highRiskCount}
-          description={`${risks.length} total risks`}
+          value={20}
+          // value={summary.highRiskCount}
+          description={`${20} total risks`}
+          // description={`${risks.length} total risks`}
           icon={<AlertTriangle className="h-4 w-4" />}
-          trend={summary.highRiskCount > 0 ? "down" : "neutral"}
+          trend={10 > 0 ? "down" : "neutral"}
+          // trend={summary.highRiskCount > 0 ? "down" : "neutral"}
         />
         <MetricCard
           title="New Commits"
-          value={summary.newCommitCount}
+          value={10}
+          // value={summary.newCommitCount}
           description="since last check"
           icon={<GitCommit className="h-4 w-4" />}
         />
         <MetricCard
           title="Active Contributors"
-          value={summary.activeContributorCount}
+          value={10}
+          // value={summary.activeContributorCount}
           description="with 10+ commits"
           icon={<Users className="h-4 w-4" />}
         />
@@ -86,7 +98,7 @@ export function OverviewContent({ digest }: OverviewContentProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <RiskSummary risks={risks} maxItems={3} />
+            {/* <RiskSummary risks={risks} maxItems={3} /> */}
           </CardContent>
         </Card>
 
@@ -99,7 +111,7 @@ export function OverviewContent({ digest }: OverviewContentProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ChurnHotspots hotspots={churnHotspots} maxItems={5} />
+            {/* <ChurnHotspots hotspots={churnHotspots} maxItems={5} /> */}
           </CardContent>
         </Card>
       </div>
@@ -109,14 +121,14 @@ export function OverviewContent({ digest }: OverviewContentProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <GitCommit className="h-5 w-5" />
-            {main.newCommits.length > 0 ? "New Commits" : "Recent Activity"}
+            {/* {main.newCommits.length > 0 ? "New Commits" : "Recent Activity"} */}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <RecentCommits
+          {/* <RecentCommits
             commits={main.newCommits.length > 0 ? main.newCommits : []}
             isNew={main.newCommits.length > 0}
-          />
+          /> */}
         </CardContent>
       </Card>
     </div>

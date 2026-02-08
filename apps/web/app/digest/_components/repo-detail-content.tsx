@@ -249,7 +249,7 @@ export function RepoDetailContent({ digest }: RepoDetailContentProps) {
                     -{branch.commitsBehind}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-right">
-                    {format(new Date(branch.lastCommit), "MMM d")}
+                    {format(new Date(branch.lastCommitTimestamp), "MMM d")}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

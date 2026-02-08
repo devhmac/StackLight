@@ -14,7 +14,7 @@ const BranchTimeline = dynamic(
   {
     ssr: false,
     loading: () => <Skeleton className="h-[400px] w-full" />,
-  }
+  },
 );
 
 interface TimelineContentProps {
@@ -22,16 +22,19 @@ interface TimelineContentProps {
 }
 
 export function TimelineContent({ digest }: TimelineContentProps) {
-  const { activeBranches, streams } = digest;
-
+  const { branches: activeBranches } = digest;
+  const streams = [];
   // Filter branches by status
-  const activeBranchList = activeBranches.filter(
-    (b) => !b.isStale && b.commitsBehind <= 30
-  );
-  const staleBranchList = activeBranches.filter(
-    (b) => b.isStale && b.commitsBehind <= 30
-  );
-  const criticalBranchList = activeBranches.filter((b) => b.commitsBehind > 30);
+  const activeBranchList = activeBranches;
+  // .filter(
+  //   (b) => !b.isStale && b.commitsBehind <= 30,
+  // );
+  const staleBranchList = activeBranches;
+  // .filter(
+  //   (b) => b.isStale && b.commitsBehind <= 30,
+  // );
+  const criticalBranchList = activeBranches;
+  // .filter((b) => b.commitsBehind > 30);
 
   return (
     <div className="space-y-6">
@@ -51,7 +54,9 @@ export function TimelineContent({ digest }: TimelineContentProps) {
         </Card>
         <Card className="gap-2 py-4">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Stale Branches</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Stale Branches
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-muted-foreground text-2xl font-bold">
