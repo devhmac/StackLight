@@ -100,6 +100,22 @@ export const gitRepository = {
 
     // const [timestampStr, message] = raw.split(DELIMITER);
   },
+  async getRepoName(path: string): Promise<string | null> {
+    try {
+      const url = await runGit(path, ["remote", "get-url", "origin"]);
+      const name = url
+        .split("/")
+        .pop()
+        ?.replace(/\.git$/, "");
+      if (name) return name;
+    } catch (err) {
+      // Expected: repo may have no remote configured.
+      // Fall through to directory name fallback.
+      console.debug(`Could not get remote name for ${path}: ${err}`);
+    }
+
+    return path.split("/").pop() ?? null;
+  },
 };
 
 // - Git Queries

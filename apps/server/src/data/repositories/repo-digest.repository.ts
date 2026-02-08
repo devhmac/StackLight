@@ -1,42 +1,44 @@
 import { eq } from "drizzle-orm";
 import {
-  RepoActivityDigest,
-  RepoActivityDigestSchema,
+  RegisteredRepositorySchema,
+  RegisteredRepository,
   repoDigests,
+  rowToRepoMapper,
 } from "../schema";
 import { db } from "..";
 
 export interface IDigestRepository {
-  upsert(repoDigest: RepoActivityDigest): Promise<void>;
-  findRepoById(repoId: string): Promise<RepoActivityDigest | null>;
-  findAllDigests(): Promise<RepoActivityDigest[]>;
+  upsert(repoDigest: RegisteredRepository): Promise<void>;
+  getRepoById(repoId: string): Promise<RegisteredRepository | null>;
+  getRepoByPath(repoId: string): Promise<RegisteredRepository | null>;
+  getAllRepos(): Promise<RegisteredRepository[]>;
   delete(repoId: string): Promise<boolean>;
 }
 
-export const digestRepository = {
-  async upsert(repoDigest: RepoActivityDigest): Promise<void> {
-    const validated = RepoActivityDigestSchema.parse(repoDigest);
+export const digestRepository: IDigestRepository = {
+  async upsert(repoDigest: RegisteredRepository): Promise<void> {
+    const validated = RegisteredRepositorySchema.parse(repoDigest);
 
     db.insert(repoDigests)
       .values({
-        repoId: validated.repo.id,
-        repoPath: validated.repo.path,
-        lastSeenCommit: validated.lastSeen?.commit ?? null,
-        lastSeenTimestamp: validated.lastSeen?.timestamp ?? null,
+        repoId: validated.id,
+        repoPath: validated.path,
+        lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
+        lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
         digestJson: JSON.stringify(validated),
       })
       .onConflictDoUpdate({
         target: repoDigests.repoId,
         set: {
-          repoPath: validated.repo.path,
-          lastSeenCommit: validated.lastSeen?.commit ?? null,
-          lastSeenTimestamp: validated.lastSeen?.timestamp ?? null,
+          repoPath: validated.path,
+          lastSeenCommit: validated.lastSeen?.lastSeenCommit ?? null,
+          lastSeenTimestamp: validated.lastSeen?.lastSeenTimestamp ?? null,
           digestJson: JSON.stringify(validated),
           updatedAt: new Date().toISOString(),
         },
       });
   },
-  async findRepoById(repoId: string): Promise<RepoActivityDigest | null> {
+  async getRepoById(repoId: string): Promise<RegisteredRepository | null> {
     const row = db
       .select()
       .from(repoDigests)
@@ -44,13 +46,21 @@ export const digestRepository = {
       .get();
 
     if (!row) return null;
-    return RepoActivityDigestSchema.parse(JSON.parse(row.digestJson));
+    return rowToRepoMapper(row);
   },
-  async findAllDigests(): Promise<RepoActivityDigest[]> {
-    const rows = db.select().from(repoDigests).all();
-    return rows.map((row) => {
-      return RepoActivityDigestSchema.parse(JSON.parse(row.digestJson));
-    });
+  async getRepoByPath(path: string): Promise<RegisteredRepository | null> {
+    const row = db
+      .select()
+      .from(repoDigests)
+      .where(eq(repoDigests.repoPath, path))
+      .get();
+
+    if (!row) return null;
+    return rowToRepoMapper(row);
+  },
+  async getAllRepos(): Promise<RegisteredRepository[]> {
+    const rows = db.select().from(repoDigests).all().map(rowToRepoMapper);
+    return rows;
   },
   async delete(repoId: string): Promise<boolean> {
     const result = db

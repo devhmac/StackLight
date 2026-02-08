@@ -1,6 +1,8 @@
 import type { GetAllBranchesResponse } from "@repo/types/git";
 import { gitRepository } from "../data/repositories/git.repository";
 import { logger } from "../middleware/logger";
+import { digestRepository } from "../data/repositories/repo-digest.repository";
+import { randomUUIDv7 } from "bun";
 
 export async function getAllBranches(
   repoPath: string,
@@ -47,4 +49,20 @@ export async function getAllBranches(
     data: branchData.filter((branch) => branch !== null),
     errors: branchErrors.length > 0 ? branchErrors : null,
   };
+}
+
+export async function addNewRepo(repoPath: string, digestJson = {}) {
+  // Assumes Repository/path is valid because controller checks
+
+  const name = await gitRepository.getRepoName(repoPath);
+  const upsert = await digestRepository.upsert({
+    id: randomUUIDv7(),
+    name: name,
+    path: repoPath,
+    lastSeen: {
+      lastSeenTimestamp: new Date().toISOString(),
+      lastSeenCommit: "test",
+    },
+    digestJson: digestJson,
+  });
 }
