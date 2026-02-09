@@ -3,47 +3,57 @@ import { gitRepository } from "../data/repositories/git.repository";
 import { logger } from "../middleware/logger";
 import { digestRepository } from "../data/repositories/repo-digest.repository";
 import { randomUUIDv7 } from "bun";
+import { mapWithConcurrency } from "../lib/utils/concurrency";
+
+const STALE_THRESHOLD_DAYS = 7;
 
 export async function getAllBranches(
   repoPath: string,
+  lastSeen: string | null,
 ): Promise<GetAllBranchesResponse> {
-  const branches = await gitRepository.getBranches(repoPath);
   const originDefault = await gitRepository.getOriginDefaultBranch(repoPath);
+
+  const [branches, mergedBranches] = await Promise.all([
+    gitRepository.getBranches(repoPath, originDefault),
+    gitRepository.getOpenButMergedBranches(repoPath, originDefault),
+  ]);
+
   const branchErrors: {
     name: string;
     error: string;
   }[] = [];
-  const branchData = await Promise.all(
-    branches.map(async (branch) => {
-      try {
-        // if (
-        //   branch.name.replace("origin/", "") === originDefault ||
-        //   branch.name === "origin/HEAD"
-        // ) {
-        //   return null;
-        // }
-
-        const divergence = await gitRepository.getBranchDivergence(
-          repoPath,
-          originDefault,
-          branch.name,
-        );
-        const forkedAt = await gitRepository.getBranchForkTimestamp(
-          repoPath,
-          originDefault,
-          branch.name,
-        );
-        return { ...branch, ...divergence, ...forkedAt };
-      } catch (error) {
-        console.error(`Failed to get divergence for ${branch.name}:`, error);
-        branchErrors.push({
-          name: branch.name,
-          error: error instanceof Error ? error.message : String(error),
-        });
+  const branchData = await mapWithConcurrency(branches, 30, async (branch) => {
+    try {
+      if (branch.name === originDefault || branch.name === "HEAD") {
         return null;
       }
-    }),
-  );
+
+      const forkedAt = await gitRepository.getBranchForkTimestamp(
+        repoPath,
+        originDefault,
+        branch.name,
+      );
+
+      const isStale =
+        Date.now() - new Date(branch.lastCommitTimestamp).getTime() >
+        STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
+      return {
+        ...branch,
+        ...forkedAt,
+        isStale,
+        isNew: isNew(branch.lastCommitTimestamp, lastSeen),
+        isMerged: mergedBranches.has(branch.name),
+      };
+    } catch (error) {
+      console.error(`Failed to get divergence for ${branch.name}:`, error);
+      branchErrors.push({
+        name: branch.name,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  });
   return {
     branches: branchData.filter((branch) => branch !== null),
     errors: branchErrors.length > 0 ? branchErrors : null,
@@ -66,4 +76,16 @@ export async function addNewRepo(repoPath: string, digestJson = {}) {
   };
   const upsert = await digestRepository.upsert(newRepoData);
   return { success: true, data: newRepoData };
+}
+
+function isNew(
+  lastCommitTimestamp: string,
+  lastSeenTimestamp: string | null | undefined,
+): boolean {
+  if (!lastSeenTimestamp) return true; // first time viewing repo
+
+  return (
+    new Date(lastCommitTimestamp).getTime() >
+    new Date(lastSeenTimestamp).getTime()
+  );
 }
