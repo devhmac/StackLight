@@ -32,6 +32,7 @@ import type {
   CSSProperties,
   FC,
   KeyboardEventHandler,
+  MutableRefObject,
   MouseEventHandler,
   ReactNode,
   RefObject,
@@ -106,6 +107,11 @@ export type GanttContextProps = {
   timelineData: TimelineData;
   ref: RefObject<HTMLDivElement | null> | null;
   scrollToFeature?: (feature: GanttFeature) => void;
+};
+
+export type GanttApi = {
+  scrollToToday: () => void;
+  scrollToFeature: (feature: GanttFeature) => void;
 };
 
 const getsDaysIn = (range: Range) => {
@@ -1169,6 +1175,7 @@ export type GanttProviderProps = {
   zoom?: number;
   // NOTE: Controls initial horizontal focus of the timeline.
   initialScrollTo?: "center" | "today";
+  apiRef?: MutableRefObject<GanttApi | null>;
   onAddItem?: (date: Date) => void;
   children: ReactNode;
   className?: string;
@@ -1178,6 +1185,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   zoom = 100,
   range = "monthly",
   initialScrollTo = "center",
+  apiRef,
   onAddItem,
   children,
   className,
@@ -1214,6 +1222,59 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     [zoom, columnWidth, sidebarWidth],
   );
 
+  const scrollToDate = useCallback(
+    (date: Date, behavior: ScrollBehavior = "smooth") => {
+      const scrollElement = scrollRef.current;
+      if (!scrollElement) {
+        return;
+      }
+
+      const startYear = timelineData[0]?.year ?? date.getFullYear();
+      const timelineStartDate = new Date(startYear, 0, 1);
+      const offset = getOffset(date, timelineStartDate, {
+        zoom,
+        range,
+        columnWidth,
+        sidebarWidth,
+        headerHeight,
+        rowHeight,
+        onAddItem,
+        placeholderLength: 2,
+        timelineData,
+        ref: scrollRef,
+      });
+      const timelineViewportWidth = Math.max(
+        0,
+        scrollElement.clientWidth - sidebarWidth,
+      );
+      const maxScrollLeft =
+        scrollElement.scrollWidth - scrollElement.clientWidth;
+      const targetScrollLeft = Math.min(
+        Math.max(0, offset - timelineViewportWidth / 2),
+        maxScrollLeft,
+      );
+
+      scrollElement.scrollTo({ left: targetScrollLeft, behavior });
+      setScrollX(targetScrollLeft);
+    },
+    [
+      timelineData,
+      zoom,
+      range,
+      columnWidth,
+      sidebarWidth,
+      headerHeight,
+      rowHeight,
+      onAddItem,
+      setScrollX,
+    ],
+  );
+
+  const scrollToToday = useCallback(
+    () => scrollToDate(new Date()),
+    [scrollToDate],
+  );
+
   // NOTE: Initial auto-scroll (center or "today") happens here.
   useEffect(() => {
     const scrollElement = scrollRef.current;
@@ -1231,27 +1292,10 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         scrollElement.scrollWidth / 2 - scrollElement.clientWidth / 2;
     } else {
       // NOTE: Calculate today's X offset within the full timeline.
-      const today = new Date();
-      const startYear = timelineData[0]?.year ?? today.getFullYear();
-      const timelineStartDate = new Date(startYear, 0, 1);
-      const offset = getOffset(today, timelineStartDate, {
-        zoom,
-        range,
-        columnWidth,
-        sidebarWidth,
-        headerHeight,
-        rowHeight,
-        onAddItem,
-        placeholderLength: 2,
-        timelineData,
-        ref: scrollRef,
-      });
-      // NOTE: Center "today" within the visible timeline area (minus sidebar).
-      const timelineViewportWidth = Math.max(
-        0,
-        scrollElement.clientWidth - sidebarWidth,
-      );
-      targetScrollLeft = offset - timelineViewportWidth / 2;
+      scrollToDate(new Date(), "auto");
+      // NOTE: Only do this once on initial mount.
+      didInitialScroll.current = true;
+      return;
     }
 
     scrollElement.scrollLeft = Math.min(
@@ -1263,6 +1307,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     didInitialScroll.current = true;
   }, [
     initialScrollTo,
+    scrollToDate,
     timelineData,
     zoom,
     range,
@@ -1419,6 +1464,16 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     },
     [timelineData, zoom, range, columnWidth, sidebarWidth, onAddItem],
   );
+
+  useEffect(() => {
+    if (!apiRef) {
+      return;
+    }
+    apiRef.current = { scrollToToday, scrollToFeature };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef, scrollToToday, scrollToFeature]);
 
   return (
     <GanttContext.Provider
