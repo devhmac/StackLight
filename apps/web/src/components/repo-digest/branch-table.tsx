@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 
-import { format } from "date-fns";
-import { FolderGit2, ArrowLeft, GitBranch } from "lucide-react";
+import { format, formatDistance } from "date-fns";
+import { GitBranch } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -15,8 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RepoDetails, RepoSummary, UiBranch } from "@/types/digest";
+import type { RepoDetails, UiBranch } from "@/types/digest";
 import { BranchDetailDialog } from "./branch-detail-dialog";
+import { isActive } from "@/lib/utils";
 
 interface RepoDetailContentProps {
   repo: RepoDetails;
@@ -64,9 +64,9 @@ export const BranchTable = ({ branches }: { branches: UiBranch[] }) => {
           <TableRow>
             <TableHead>Branch</TableHead>
             <TableHead>Author</TableHead>
-            <TableHead className="text-right">Ahead</TableHead>
-            <TableHead className="text-right">Behind</TableHead>
+            <TableHead className="text-right">Ahead / Behind</TableHead>
             <TableHead className="text-right">Last Commit</TableHead>
+            <TableHead className="text-right">Duraton</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -81,24 +81,32 @@ export const BranchTable = ({ branches }: { branches: UiBranch[] }) => {
               <TableCell className="text-muted-foreground">
                 {branch.author}
               </TableCell>
-              <TableCell className="text-right text-green-600 dark:text-green-400">
-                +{branch.commitsAhead ?? 0}
-              </TableCell>
-              <TableCell className="text-right text-red-600 dark:text-red-400">
-                -{branch.commitsBehind ?? 0}
+              <TableCell className="text-right ">
+                <span className="text-green-600 dark:text-green-400">
+                  +{branch.commitsAhead ?? 0}
+                </span>{" "}
+                /{" "}
+                <span className="text-red-600 dark:text-red-400">
+                  -{branch.commitsBehind ?? 0}
+                </span>
               </TableCell>
               <TableCell className="text-muted-foreground text-right">
                 {branch.lastCommitTimestamp
                   ? format(new Date(branch.lastCommitTimestamp), "MMM d")
                   : "N/A"}
               </TableCell>
+              <TableCell className="text-muted-foreground text-right">
+                {formatDistance(
+                  new Date(branch.lastCommitTimestamp),
+                  new Date(branch.forkedAt),
+                )}
+              </TableCell>
               <TableCell>
                 <div className="flex gap-1">
+                  {branch.isMerged && <Badge>Merged</Badge>}
                   {branch.isNew && <Badge>New</Badge>}
                   {branch.isStale && <Badge variant="secondary">Stale</Badge>}
-                  {!branch.isNew && !branch.isStale && (
-                    <Badge variant="outline">Active</Badge>
-                  )}
+                  {isActive(branch) && <Badge variant="success">Active</Badge>}
                 </div>
               </TableCell>
             </TableRow>

@@ -16,8 +16,6 @@ export interface RepoDetails extends RepoSummary {
 
 // UI-friendly branch type that extends the backend shape with optional flags
 export type UiBranch = BranchInfo & {
-  isStale?: boolean;
-  isNew?: boolean;
   filesChanged?: string[];
 };
 
