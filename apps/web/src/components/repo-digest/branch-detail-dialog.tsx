@@ -158,7 +158,7 @@ export function BranchDetailDialog({
 
       const sharedFiles =
         branch.filesChanged?.filter((file) =>
-          (other.filesChanged ?? []).includes(file)
+          (other.filesChanged ?? []).includes(file),
         ) ?? [];
 
       if (sharedFiles.length > 0) {
@@ -213,7 +213,9 @@ export function BranchDetailDialog({
           <Separator orientation="vertical" className="h-4" />
           <div className="flex items-center gap-1.5">
             <FileCode className="text-muted-foreground h-4 w-4" />
-            <span className="font-medium">{branch.filesChanged?.length ?? 0}</span>
+            <span className="font-medium">
+              {branch.filesChanged?.length ?? 0}
+            </span>
             <span className="text-muted-foreground">files</span>
           </div>
           {detail && (
@@ -281,7 +283,10 @@ export function BranchDetailDialog({
                     key={commit.sha}
                     className="flex items-center gap-3 border-b px-3 py-2 last:border-b-0"
                   >
-                    <Badge variant="outline" className="shrink-0 font-mono text-xs">
+                    <Badge
+                      variant="outline"
+                      className="shrink-0 font-mono text-xs"
+                    >
                       {commit.sha.slice(0, 7)}
                     </Badge>
                     <span className="min-w-0 flex-1 truncate text-sm">
@@ -305,11 +310,11 @@ export function BranchDetailDialog({
               <div className="rounded-lg border">
                 {Object.entries(groupedFiles).map(
                   ([directory, files]: [string, FileDiff[]]) => (
-                  <DirectoryGroup
-                    key={directory}
-                    directory={directory}
-                    files={files}
-                  />
+                    <DirectoryGroup
+                      key={directory}
+                      directory={directory}
+                      files={files}
+                    />
                   ),
                 )}
               </div>

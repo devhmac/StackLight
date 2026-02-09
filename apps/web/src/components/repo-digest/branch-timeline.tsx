@@ -90,9 +90,10 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
     setDialogOpen(true);
   };
 
-  // Group branches by prefix (feature/, fix/, etc.)
+  // Group branches by prefix (feature/, fix/, etc.) and keep merged separate.
   const groupedBranches = useMemo(() => {
     const groups = new Map<string, UiBranch[]>([
+      ["merged", []],
       ["feature", []],
       ["fix", []],
       ["chore", []],
@@ -101,9 +102,11 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
     ]);
 
     for (const branch of branches) {
-      const prefix = branch.name.split("/")[0] ?? "other";
-      const targetGroup = groups.has(prefix) ? prefix : "other";
-      const group = groups.get(targetGroup);
+      // NOTE: Merged branches are intentionally kept out of prefix groups.
+      const targetGroup = branch.isMerged
+        ? "merged"
+        : (branch.name.split("/")[0] ?? "other");
+      const group = groups.get(groups.has(targetGroup) ? targetGroup : "other");
       if (group) {
         group.push(branch);
       }

@@ -1188,6 +1188,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   );
   const [, setScrollX] = useGanttScrollX();
   const [sidebarWidth, setSidebarWidth] = useState(0);
+  // NOTE: Prevents re-centering when timelineData grows.
   const didInitialScroll = useRef(false);
 
   const headerHeight = 60;
@@ -1220,6 +1221,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       return;
     }
 
+    // NOTE: Clamp to valid scroll range to avoid overshoot.
     const maxScrollLeft =
       scrollElement.scrollWidth - scrollElement.clientWidth;
     let targetScrollLeft = 0;
@@ -1228,6 +1230,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       targetScrollLeft =
         scrollElement.scrollWidth / 2 - scrollElement.clientWidth / 2;
     } else {
+      // NOTE: Calculate today's X offset within the full timeline.
       const today = new Date();
       const startYear = timelineData[0]?.year ?? today.getFullYear();
       const timelineStartDate = new Date(startYear, 0, 1);
@@ -1243,6 +1246,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
         timelineData,
         ref: scrollRef,
       });
+      // NOTE: Center "today" within the visible timeline area (minus sidebar).
       const timelineViewportWidth = Math.max(
         0,
         scrollElement.clientWidth - sidebarWidth,
@@ -1255,6 +1259,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
       maxScrollLeft,
     );
     setScrollX(scrollElement.scrollLeft);
+    // NOTE: Only do this once on initial mount.
     didInitialScroll.current = true;
   }, [
     initialScrollTo,
