@@ -3,11 +3,22 @@ import { HttpError } from "../../lib/http-errors";
 import { digestRepository } from "../../data/repositories/repo-digest.repository";
 import { isGitRepo } from "../../lib/git";
 import { addNewRepo, getAllBranches } from "../../services/git.service";
+import { gitRepository } from "../../data/repositories/git.repository";
 
 export const ReposController = {
   async listRepos(c: Context) {
     const repos = await digestRepository.getAllRepos();
     return c.json({ data: repos });
+  },
+  async syncRepo(c: Context) {
+    const id = c.req.param("id");
+    const repo = await digestRepository.getRepoById(id);
+    if (!repo) {
+      throw HttpError.notFound();
+    }
+    await gitRepository.syncRepo(repo.path);
+
+    return c.json({ success: true }, 200);
   },
 
   async getRepoDetails(c: Context) {

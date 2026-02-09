@@ -1,20 +1,24 @@
-import type { RepoSummary, AddRepoRequest, MarkSeenRequest } from "@/types/digest";
+import type {
+  RepoSummary,
+  AddRepoRequest,
+  MarkSeenRequest,
+} from "@/types/digest";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-async function fetchApi<T>(
+export async function fetchApi<T>(
   endpoint: string,
-  options?: RequestInit
+  options?: RequestInit,
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
@@ -29,7 +33,7 @@ async function fetchApi<T>(
   if (!response.ok) {
     throw new ApiError(
       response.status,
-      `API error: ${response.status} ${response.statusText}`
+      `API error: ${response.status} ${response.statusText}`,
     );
   }
 
@@ -58,7 +62,7 @@ export async function deleteRepo(id: string): Promise<void> {
 
 export async function markSeen(
   repoId: string,
-  data: MarkSeenRequest
+  data: MarkSeenRequest,
 ): Promise<void> {
   await fetchApi<void>(`/api/repos/${repoId}/mark-seen`, {
     method: "POST",

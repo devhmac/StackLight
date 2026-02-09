@@ -130,7 +130,7 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
             className="h-3 w-3 rounded"
             style={{ backgroundColor: STATUS_CRITICAL.color }}
           />
-          <span>Critical (30+ behind)</span>
+          <span>Critical (Active & 30+ behind)</span>
         </div>
       </div>
 

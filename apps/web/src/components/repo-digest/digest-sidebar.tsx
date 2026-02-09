@@ -28,6 +28,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { RepoSummary } from "@/types/digest";
+import { Button } from "../ui/button";
+import { useTransition } from "react";
+import { syncRepo } from "@/lib/actions";
+import { Spinner } from "../ui/spinner";
 
 interface DigestSidebarProps {
   repos: RepoSummary[];
@@ -126,6 +130,9 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          {selectedRepoId && <SyncButton repoId={selectedRepoId} />}
+        </SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -133,7 +140,8 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
                 const isActive =
                   item.href === "/project"
                     ? pathname === "/project"
-                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                    : pathname === item.href ||
+                      pathname.startsWith(`${item.href}/`);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive}>
@@ -150,5 +158,18 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
+  );
+}
+
+function SyncButton({ repoId }: { repoId: string }) {
+  const [isPending, startTransition] = useTransition();
+
+  return (
+    <Button
+      disabled={isPending}
+      onClick={() => startTransition(() => syncRepo(repoId))}
+    >
+      {isPending ? <Spinner className="animate-spin" /> : "Fetch Latest"}
+    </Button>
   );
 }

@@ -6,6 +6,7 @@ export const repoRouter = new Hono()
   .get("/", ReposController.listRepos)
   .post("/", ReposController.addRepo)
   .get("/:id", ReposController.getRepoDetails)
-  .delete("/:id", ReposController.deleteRepo);
+  .delete("/:id", ReposController.deleteRepo)
+  .get("/:id/sync", ReposController.syncRepo);
 
 export type RepoRouter = typeof repoRouter;

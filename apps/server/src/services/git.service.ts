@@ -3,6 +3,7 @@ import { gitRepository } from "../data/repositories/git.repository";
 import { logger } from "../middleware/logger";
 import { digestRepository } from "../data/repositories/repo-digest.repository";
 import { randomUUIDv7 } from "bun";
+import { mapWithConcurrency } from "../lib/utils/concurrency";
 
 const STALE_THRESHOLD_DAYS = 7;
 
@@ -21,40 +22,38 @@ export async function getAllBranches(
     name: string;
     error: string;
   }[] = [];
-  const branchData = await Promise.all(
-    branches.map(async (branch) => {
-      try {
-        if (branch.name === originDefault || branch.name === "HEAD") {
-          return null;
-        }
-
-        const forkedAt = await gitRepository.getBranchForkTimestamp(
-          repoPath,
-          originDefault,
-          branch.name,
-        );
-
-        const isStale =
-          Date.now() - new Date(branch.lastCommitTimestamp).getTime() >
-          STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
-
-        return {
-          ...branch,
-          ...forkedAt,
-          isStale,
-          isNew: isNew(branch.lastCommitTimestamp, lastSeen),
-          isMerged: mergedBranches.has(branch.name),
-        };
-      } catch (error) {
-        console.error(`Failed to get divergence for ${branch.name}:`, error);
-        branchErrors.push({
-          name: branch.name,
-          error: error instanceof Error ? error.message : String(error),
-        });
+  const branchData = await mapWithConcurrency(branches, 100, async (branch) => {
+    try {
+      if (branch.name === originDefault || branch.name === "HEAD") {
         return null;
       }
-    }),
-  );
+
+      const forkedAt = await gitRepository.getBranchForkTimestamp(
+        repoPath,
+        originDefault,
+        branch.name,
+      );
+
+      const isStale =
+        Date.now() - new Date(branch.lastCommitTimestamp).getTime() >
+        STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+
+      return {
+        ...branch,
+        ...forkedAt,
+        isStale,
+        isNew: isNew(branch.lastCommitTimestamp, lastSeen),
+        isMerged: mergedBranches.has(branch.name),
+      };
+    } catch (error) {
+      console.error(`Failed to get divergence for ${branch.name}:`, error);
+      branchErrors.push({
+        name: branch.name,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  });
   return {
     branches: branchData.filter((branch) => branch !== null),
     errors: branchErrors.length > 0 ? branchErrors : null,

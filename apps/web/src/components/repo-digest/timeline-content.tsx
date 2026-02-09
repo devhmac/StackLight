@@ -26,7 +26,7 @@ export function TimelineContent({ branches, timeline }: TimelineContentProps) {
   const activeBranchList = branches.filter((b) => !b.isStale);
   const staleBranchList = branches.filter((b) => b.isStale);
   const criticalBranchList = branches.filter(
-    (b) => (b.commitsBehind ?? 0) > 30,
+    (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
   );
 
   return (
@@ -85,7 +85,7 @@ export function TimelineContent({ branches, timeline }: TimelineContentProps) {
               <TabsTrigger value="all">
                 All
                 <Badge variant="secondary" className="ml-2">
-                  {activeBranchList.length}
+                  {branches.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="active">
