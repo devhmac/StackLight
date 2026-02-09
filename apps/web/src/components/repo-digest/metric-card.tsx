@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
 
 interface MetricCardProps {
   title: string;
-  value: string | number;
+  value: string | number | React.ReactNode;
   description?: string;
+  variant?: "neutral" | "stale" | "error" | "warn" | "success";
   icon?: React.ReactNode;
   trend?: "up" | "down" | "neutral";
   className?: string;
@@ -16,10 +17,18 @@ export function MetricCard({
   title,
   value,
   description,
-  icon,
+  icon = "neutral",
+  variant,
   trend,
   className,
 }: MetricCardProps) {
+  const valueVariant = {
+    neutral: "",
+    stale: "text-muted-foreground",
+    error: "text-destructive",
+    warn: "text-yellow-600",
+    success: "text-green-600",
+  };
   return (
     <Card className={cn("gap-2 py-4", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -27,7 +36,11 @@ export function MetricCard({
         {icon && <div className="text-muted-foreground">{icon}</div>}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div
+          className={`text-2xl font-bold ${valueVariant[variant ?? "neutral"]}`}
+        >
+          {value}
+        </div>
         {description && (
           <p
             className={cn("text-muted-foreground text-xs", {

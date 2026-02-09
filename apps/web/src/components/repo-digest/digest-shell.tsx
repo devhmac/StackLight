@@ -58,12 +58,7 @@ export function DigestShell({
   );
 }
 
-function SyncButton({
-  repoId,
-  // currentPath,
-}: {
-  repoId: string;
-}) {
+export function SyncButton({ repoId }: { repoId: string }) {
   const [isPending, startTransition] = useTransition();
   const [progress, setProgress] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);

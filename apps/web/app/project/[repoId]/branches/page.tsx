@@ -2,7 +2,7 @@ import Link from "next/link";
 import { FolderGit2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getRepoDetails } from "@/lib/data";
-import { RepoDetailContent } from "@/components/repo-digest/repo-detail-content";
+import { BranchTableCard } from "@/components/repo-digest/branch-table";
 
 interface ProjectDetailsPageProps {
   params: Promise<{ repoId: string }>;
@@ -32,5 +32,5 @@ export default async function ProjectDetailsPage({
     );
   }
 
-  return <RepoDetailContent repo={repo} />;
+  return <BranchTableCard repo={repo} />;
 }

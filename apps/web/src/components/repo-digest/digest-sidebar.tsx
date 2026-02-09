@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   FolderGit2,
   ChevronDown,
+  ChartGantt,
 } from "lucide-react";
 
 import {
@@ -53,6 +54,11 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
         {
           title: "Timeline",
           href: `${basePath}/timeline`,
+          icon: ChartGantt,
+        },
+        {
+          title: "Branches",
+          href: `${basePath}/branches`,
           icon: GitBranch,
         },
         {

@@ -1,41 +1,27 @@
 import { GitBranch, AlertTriangle, GitFork, GitMerge } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type {
-  RepoDetails,
-  RepoSummary,
-  RiskItem,
-  UiBranch,
-} from "@/types/digest";
+import type { RepoDetails, RiskItem } from "@/types/digest";
 import { MetricCard } from "./metric-card";
 import { DemoNotice } from "./demo-notice";
+import Inbox from "./overview/inbox";
 
 interface OverviewContentProps {
-  repo?: RepoDetails;
+  repo: RepoDetails;
   risks?: RiskItem[];
 }
 export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
   const branches = repo?.branches ?? [];
 
-  const totalBehind = branches.reduce(
-    (sum, b) => sum + (b.commitsBehind ?? 0),
-    0,
+  const activeBranches = branches.filter((b) => !b.isStale);
+  const staleBranches = branches.filter((b) => b.isStale);
+  const criticalBranches = branches.filter(
+    (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
   );
-  const totalAhead = branches.reduce(
-    (sum, b) => sum + (b.commitsAhead ?? 0),
-    0,
-  );
-  const avgBehind = branches.length
-    ? Math.round(totalBehind / branches.length)
-    : 0;
-  const avgAhead = branches.length
-    ? Math.round(totalAhead / branches.length)
-    : 0;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-muted-foreground text-sm">Repository</p>
           <h1 className="text-2xl font-semibold">
             {repo?.name ?? "Selected Repo"}
           </h1>
@@ -44,28 +30,33 @@ export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
           )}
         </div>
       </div>
+      <Inbox repo={repo} />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Active Branches"
-          value={branches.filter((b) => !b.isStale).length}
-          description="tracking divergence vs origin default"
+          variant={activeBranches.length > 0 ? "success" : "stale"}
+          value={`${activeBranches.length} `}
+          description={`${branches.length} Total Branches`}
           icon={<GitBranch className="h-4 w-4" />}
         />
         <MetricCard
-          title="Avg Ahead"
-          value={avgAhead}
+          title="Stale Branches"
+          variant="stale"
+          value={staleBranches.length}
           description="commits ahead of default"
           icon={<GitFork className="h-4 w-4" />}
         />
         <MetricCard
-          title="Avg Behind"
-          value={avgBehind}
+          title="Critical Divergence"
+          variant={criticalBranches.length > 0 ? "error" : "stale"}
+          value={criticalBranches.length}
           description="commits behind default"
           icon={<GitMerge className="h-4 w-4" />}
         />
         <MetricCard
           title="High-Risk (demo)"
+          variant="error"
           value={risks.filter((r) => r.severity === "high").length}
           description={`${risks.length} total demo risks`}
           icon={<AlertTriangle className="h-4 w-4" />}

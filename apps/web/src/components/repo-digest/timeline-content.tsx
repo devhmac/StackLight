@@ -33,45 +33,6 @@ export function TimelineContent({ branches, timeline }: TimelineContentProps) {
     <div className="space-y-6">
       <DemoNotice message="Timeline chart uses demo data until timeline API ships." />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="gap-2 py-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Branches
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {activeBranchList.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-2 py-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Stale Branches
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-muted-foreground text-2xl font-bold">
-              {staleBranchList.length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="gap-2 py-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Critical Divergence
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-destructive text-2xl font-bold">
-              {criticalBranchList.length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
