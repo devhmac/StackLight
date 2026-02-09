@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import {
   GanttProvider,
@@ -13,6 +13,7 @@ import {
   GanttFeatureListGroup,
   GanttFeatureItem,
   GanttToday,
+  type GanttApi,
   type GanttFeature,
   type GanttStatus,
 } from "@/components/kibo-ui/gantt";
@@ -27,6 +28,11 @@ interface BranchTimelineProps {
   branches: UiBranch[];
   timeline: TimelinePoint[];
 }
+
+type GroupedBranchItem = {
+  branch: UiBranch;
+  feature: GanttFeature;
+};
 
 // Define statuses for branch health
 const STATUS_ACTIVE: GanttStatus = {
@@ -76,6 +82,8 @@ function branchToFeature(branch: UiBranch): GanttFeature {
 export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
   const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  // NOTE: Used by the "Today" button to jump back to the current date.
+  const ganttApiRef = useRef<GanttApi | null>(null);
 
   const timelineMap = useMemo(() => {
     const map = new Map<string, TimelinePoint>();
@@ -85,14 +93,16 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
     return map;
   }, [timeline]);
 
-  const handleOpenDetail = (branch: UiBranch) => {
+  // NOTE: Stable handler to avoid rebinding for every list item render.
+  const handleOpenDetail = useCallback((branch: UiBranch) => {
     setSelectedBranch(branch);
     setDialogOpen(true);
-  };
+  }, []);
 
   // Group branches by prefix (feature/, fix/, etc.) and keep merged separate.
+  // NOTE: We build the feature payloads here so we don't duplicate the override logic.
   const groupedBranches = useMemo(() => {
-    const groups = new Map<string, UiBranch[]>([
+    const groups = new Map<string, GroupedBranchItem[]>([
       ["merged", []],
       ["feature", []],
       ["fix", []],
@@ -106,72 +116,91 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
       const targetGroup = branch.isMerged
         ? "merged"
         : (branch.name.split("/")[0] ?? "other");
-      const group = groups.get(groups.has(targetGroup) ? targetGroup : "other");
+      const groupKey = groups.has(targetGroup) ? targetGroup : "other";
+      const group = groups.get(groupKey);
+      const override = timelineMap.get(branch.name);
+      const baseFeature = branchToFeature(branch);
+      const feature = override
+        ? {
+            ...baseFeature,
+            startAt: new Date(override.startedAt),
+            endAt: new Date(override.lastCommitAt),
+          }
+        : baseFeature;
       if (group) {
-        group.push(branch);
+        group.push({ branch, feature });
       }
     }
 
     // Filter out empty groups and convert to array
     return Array.from(groups.entries()).filter(([, items]) => items.length > 0);
-  }, [branches]);
+  }, [branches, timelineMap]);
 
-  const handleSelectItem = (id: string) => {
-    const branch = branches.find((b) => b.name === id);
-    setSelectedBranch(branch ?? null);
-  };
+  // NOTE: Stable handler used by sidebar items.
+  const handleSelectItem = useCallback(
+    (id: string) => {
+      const branch = branches.find((b) => b.name === id);
+      setSelectedBranch(branch ?? null);
+    },
+    [branches],
+  );
 
   return (
     <div className="space-y-4">
       {/* Legend */}
-      <div className="flex items-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-3 rounded"
-            style={{ backgroundColor: STATUS_ACTIVE.color }}
-          />
-          <span>Active</span>
+      <div className="flex items-center justify-between gap-4 text-sm">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded"
+              style={{ backgroundColor: STATUS_ACTIVE.color }}
+            />
+            <span>Active</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded"
+              style={{ backgroundColor: STATUS_STALE.color }}
+            />
+            <span>Stale (14+ days)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div
+              className="h-3 w-3 rounded"
+              style={{ backgroundColor: STATUS_CRITICAL.color }}
+            />
+            <span>Critical (Active & 30+ behind)</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-3 rounded"
-            style={{ backgroundColor: STATUS_STALE.color }}
-          />
-          <span>Stale (14+ days)</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div
-            className="h-3 w-3 rounded"
-            style={{ backgroundColor: STATUS_CRITICAL.color }}
-          />
-          <span>Critical (Active & 30+ behind)</span>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          // NOTE: Jump back to the Today marker on demand.
+          onClick={() => ganttApiRef.current?.scrollToToday()}
+        >
+          Today
+        </Button>
       </div>
 
       {/* Gantt Chart */}
       <div className="h-[500px] overflow-hidden rounded-lg border">
         {/* NOTE: This sets the initial auto-scroll target for the Gantt. */}
-        <GanttProvider range="daily" zoom={100} initialScrollTo="today">
+        <GanttProvider
+          range="daily"
+          zoom={100}
+          initialScrollTo="today"
+          apiRef={ganttApiRef}
+        >
           <GanttSidebar>
             {groupedBranches.map(([groupName, groupBranches]) => (
               <GanttSidebarGroup key={groupName} name={groupName}>
-                {groupBranches.map((branch) => {
-                  const override = timelineMap.get(branch.name);
-                  const feature = override
-                    ? {
-                        ...branchToFeature(branch),
-                        startAt: new Date(override.startedAt),
-                        endAt: new Date(override.lastCommitAt),
-                      }
-                    : branchToFeature(branch);
-                  return (
-                    <GanttSidebarItem
-                      key={branch.name}
-                      feature={feature}
-                      onSelectItem={handleSelectItem}
-                    />
-                  );
-                })}
+                {groupBranches.map(({ branch, feature }) => (
+                  <GanttSidebarItem
+                    key={branch.name}
+                    feature={feature}
+                    onSelectItem={handleSelectItem}
+                  />
+                ))}
               </GanttSidebarGroup>
             ))}
           </GanttSidebar>
@@ -180,34 +209,24 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
             <GanttFeatureList>
               {groupedBranches.map(([groupName, groupBranches]) => (
                 <GanttFeatureListGroup key={groupName}>
-                  {groupBranches.map((branch) => {
-                    const override = timelineMap.get(branch.name);
-                    const feature = override
-                      ? {
-                          ...branchToFeature(branch),
-                          startAt: new Date(override.startedAt),
-                          endAt: new Date(override.lastCommitAt),
-                        }
-                      : branchToFeature(branch);
-                    return (
-                      <GanttFeatureItem key={branch.name} {...feature}>
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <div
-                            className="h-2 w-2 shrink-0 rounded-full"
-                            style={{
-                              backgroundColor: getBranchStatus(branch)?.color,
-                            }}
-                          />
-                          <span className="truncate text-xs">
-                            {branch.name.replace(
-                              /^(feature|fix|chore|experiment)\//,
-                              "",
-                            )}
-                          </span>
-                        </div>
-                      </GanttFeatureItem>
-                    );
-                  })}
+                  {groupBranches.map(({ branch, feature }) => (
+                    <GanttFeatureItem key={branch.name} {...feature}>
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <div
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: getBranchStatus(branch)?.color,
+                          }}
+                        />
+                        <span className="truncate text-xs">
+                          {branch.name.replace(
+                            /^(feature|fix|chore|experiment)\//,
+                            "",
+                          )}
+                        </span>
+                      </div>
+                    </GanttFeatureItem>
+                  ))}
                 </GanttFeatureListGroup>
               ))}
             </GanttFeatureList>
