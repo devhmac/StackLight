@@ -147,7 +147,8 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
 
       {/* Gantt Chart */}
       <div className="h-[500px] overflow-hidden rounded-lg border">
-        <GanttProvider range="daily" zoom={100}>
+        {/* NOTE: This sets the initial auto-scroll target for the Gantt. */}
+        <GanttProvider range="daily" zoom={100} initialScrollTo="today">
           <GanttSidebar>
             {groupedBranches.map(([groupName, groupBranches]) => (
               <GanttSidebarGroup key={groupName} name={groupName}>

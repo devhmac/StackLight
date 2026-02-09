@@ -1167,6 +1167,8 @@ GanttMarker.displayName = "GanttMarker";
 export type GanttProviderProps = {
   range?: Range;
   zoom?: number;
+  // NOTE: Controls initial horizontal focus of the timeline.
+  initialScrollTo?: "center" | "today";
   onAddItem?: (date: Date) => void;
   children: ReactNode;
   className?: string;
@@ -1175,6 +1177,7 @@ export type GanttProviderProps = {
 export const GanttProvider: FC<GanttProviderProps> = ({
   zoom = 100,
   range = "monthly",
+  initialScrollTo = "center",
   onAddItem,
   children,
   className,
@@ -1185,6 +1188,7 @@ export const GanttProvider: FC<GanttProviderProps> = ({
   );
   const [, setScrollX] = useGanttScrollX();
   const [sidebarWidth, setSidebarWidth] = useState(0);
+  const didInitialScroll = useRef(false);
 
   const headerHeight = 60;
   const rowHeight = 36;
@@ -1209,13 +1213,61 @@ export const GanttProvider: FC<GanttProviderProps> = ({
     [zoom, columnWidth, sidebarWidth],
   );
 
+  // NOTE: Initial auto-scroll (center or "today") happens here.
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollLeft =
-        scrollRef.current.scrollWidth / 2 - scrollRef.current.clientWidth / 2;
-      setScrollX(scrollRef.current.scrollLeft);
+    const scrollElement = scrollRef.current;
+    if (!scrollElement || didInitialScroll.current) {
+      return;
     }
-  }, [setScrollX]);
+
+    const maxScrollLeft =
+      scrollElement.scrollWidth - scrollElement.clientWidth;
+    let targetScrollLeft = 0;
+
+    if (initialScrollTo === "center") {
+      targetScrollLeft =
+        scrollElement.scrollWidth / 2 - scrollElement.clientWidth / 2;
+    } else {
+      const today = new Date();
+      const startYear = timelineData[0]?.year ?? today.getFullYear();
+      const timelineStartDate = new Date(startYear, 0, 1);
+      const offset = getOffset(today, timelineStartDate, {
+        zoom,
+        range,
+        columnWidth,
+        sidebarWidth,
+        headerHeight,
+        rowHeight,
+        onAddItem,
+        placeholderLength: 2,
+        timelineData,
+        ref: scrollRef,
+      });
+      const timelineViewportWidth = Math.max(
+        0,
+        scrollElement.clientWidth - sidebarWidth,
+      );
+      targetScrollLeft = offset - timelineViewportWidth / 2;
+    }
+
+    scrollElement.scrollLeft = Math.min(
+      Math.max(0, targetScrollLeft),
+      maxScrollLeft,
+    );
+    setScrollX(scrollElement.scrollLeft);
+    didInitialScroll.current = true;
+  }, [
+    initialScrollTo,
+    timelineData,
+    zoom,
+    range,
+    columnWidth,
+    sidebarWidth,
+    headerHeight,
+    rowHeight,
+    onAddItem,
+    setScrollX,
+  ]);
 
   // Update sidebar width when DOM is ready
   useEffect(() => {

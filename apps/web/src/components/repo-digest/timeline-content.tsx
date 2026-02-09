@@ -30,6 +30,14 @@ export function TimelineContent({ branches, timeline }: TimelineContentProps) {
     (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
   );
 
+  const tabMap = {
+    all: { title: "All", branches: branches },
+    active: {
+      title: "Active",
+      branches: activeBranchList,
+    },
+  };
+
   return (
     <div className="space-y-6">
       <DemoNotice message="Timeline chart uses demo data until timeline API ships." />

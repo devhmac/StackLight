@@ -4,6 +4,7 @@ import type { RepoDetails, RiskItem } from "@/types/digest";
 import { MetricCard } from "./metric-card";
 import { DemoNotice } from "./demo-notice";
 import Inbox from "./overview/inbox";
+import { isActive } from "@/lib/utils";
 
 interface OverviewContentProps {
   repo: RepoDetails;
@@ -12,7 +13,7 @@ interface OverviewContentProps {
 export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
   const branches = repo?.branches ?? [];
 
-  const activeBranches = branches.filter((b) => !b.isStale);
+  const activeBranches = branches.filter((b) => isActive(b));
   const staleBranches = branches.filter((b) => b.isStale);
   const criticalBranches = branches.filter(
     (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
