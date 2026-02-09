@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { RepoSummary } from "@/types/digest";
 import { Button } from "../ui/button";
-import { useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { syncRepo } from "@/lib/actions";
 import { Spinner } from "../ui/spinner";
 
@@ -130,9 +130,6 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          {selectedRepoId && <SyncButton repoId={selectedRepoId} />}
-        </SidebarGroup>
-        <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -158,18 +155,5 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
     </Sidebar>
-  );
-}
-
-function SyncButton({ repoId }: { repoId: string }) {
-  const [isPending, startTransition] = useTransition();
-
-  return (
-    <Button
-      disabled={isPending}
-      onClick={() => startTransition(() => syncRepo(repoId))}
-    >
-      {isPending ? <Spinner className="animate-spin" /> : "Fetch Latest"}
-    </Button>
   );
 }

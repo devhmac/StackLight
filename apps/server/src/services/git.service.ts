@@ -22,7 +22,7 @@ export async function getAllBranches(
     name: string;
     error: string;
   }[] = [];
-  const branchData = await mapWithConcurrency(branches, 100, async (branch) => {
+  const branchData = await mapWithConcurrency(branches, 30, async (branch) => {
     try {
       if (branch.name === originDefault || branch.name === "HEAD") {
         return null;
