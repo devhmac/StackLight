@@ -73,7 +73,7 @@ export type GanttFeature = {
   name: string;
   startAt: Date;
   endAt: Date;
-  status: GanttStatus;
+  status?: GanttStatus;
   lane?: string; // Optional: features with the same lane will share a row
 };
 
@@ -517,7 +517,7 @@ export const GanttSidebarItem: FC<GanttSidebarItemProps> = ({
       <div
         className="pointer-events-none h-2 w-2 shrink-0 rounded-full"
         style={{
-          backgroundColor: feature.status.color,
+          backgroundColor: feature.status?.color,
         }}
       />
       <p className="pointer-events-none flex-1 truncate text-left font-medium">

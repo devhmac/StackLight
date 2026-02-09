@@ -96,15 +96,17 @@ export const BranchTable = ({ branches }: { branches: UiBranch[] }) => {
                   : "N/A"}
               </TableCell>
               <TableCell className="text-muted-foreground text-right">
-                {formatDistance(
-                  new Date(branch.lastCommitTimestamp),
-                  new Date(branch.forkedAt),
-                )}
+                {!branch.forkedAt
+                  ? "N/A"
+                  : formatDistance(
+                      new Date(branch.lastCommitTimestamp),
+                      new Date(branch.forkedAt),
+                    )}
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">
                   {branch.isMerged && <Badge>Merged</Badge>}
-                  {branch.isNew && <Badge>New</Badge>}
+                  {branch.isNew && <Badge className="bg-blue-500">New</Badge>}
                   {branch.isStale && <Badge variant="secondary">Stale</Badge>}
                   {isActive(branch) && <Badge variant="success">Active</Badge>}
                 </div>

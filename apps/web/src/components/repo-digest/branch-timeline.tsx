@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
 import type { TimelinePoint, UiBranch } from "@/types/digest";
 import { BranchDetailDialog } from "./branch-detail-dialog";
+import { isActive } from "@/lib/utils";
 
 interface BranchTimelineProps {
   branches: UiBranch[];
@@ -45,18 +46,28 @@ const STATUS_CRITICAL: GanttStatus = {
   name: "Critical",
   color: "hsl(0, 84%, 60%)", // red/destructive
 };
+const STATUS_MERGED: GanttStatus = {
+  id: "merged",
+  name: "Merged",
+  color: "hsl(220, 9%, 46%)", // red/destructive
+};
 
-function getBranchStatus(branch: UiBranch): GanttStatus {
+function getBranchStatus(branch: UiBranch): GanttStatus | undefined {
   if ((branch.commitsBehind ?? 0) > 30) return STATUS_CRITICAL;
   if (branch.isStale) return STATUS_STALE;
-  return STATUS_ACTIVE;
+  if (isActive(branch)) return STATUS_ACTIVE;
+  if (branch.isMerged) return STATUS_MERGED;
+  return;
 }
 
 function branchToFeature(branch: UiBranch): GanttFeature {
   return {
     id: branch.name,
     name: branch.name.replace(/^(feature|fix|chore|experiment)\//, ""),
-    startAt: new Date(branch.forkedAt),
+    //If no forked at then branch is already merged and wont have a start date
+    startAt: branch.forkedAt
+      ? new Date(branch.forkedAt)
+      : new Date(branch.lastCommitTimestamp),
     endAt: new Date(branch.lastCommitTimestamp),
     status: getBranchStatus(branch),
   };
@@ -180,7 +191,7 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
                           <div
                             className="h-2 w-2 shrink-0 rounded-full"
                             style={{
-                              backgroundColor: getBranchStatus(branch).color,
+                              backgroundColor: getBranchStatus(branch)?.color,
                             }}
                           />
                           <span className="truncate text-xs">

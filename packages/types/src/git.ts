@@ -1,6 +1,5 @@
 export interface BranchInfo {
-  forkedAt: string;
-  mergeBaseSha: string;
+  forkedAt: string | null;
   commitsAhead: number | undefined;
   commitsBehind: number | undefined;
   name: string;

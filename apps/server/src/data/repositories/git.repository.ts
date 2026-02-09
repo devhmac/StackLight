@@ -60,26 +60,40 @@ export const gitRepository = {
     repoPath: string,
     originDefault: string,
     branchName: string,
-  ): Promise<{ forkedAt: string; mergeBaseSha: string }> {
-    const mergeBaseSha = (
-      await runGit(repoPath, [
-        "merge-base",
-        `origin/${originDefault}`,
-        `origin/${branchName}`,
-      ])
-    ).trim();
-
-    const rawForkTimestamp = await runGit(repoPath, [
-      "show",
-      "-s",
-      `--format=%ct`,
-      mergeBaseSha,
+  ): Promise<{ forkedAt: string | null }> {
+    const output = await runGit(repoPath, [
+      "log",
+      `origin/${originDefault}..origin/${branchName}`,
+      "--reverse",
+      "--format=%ct",
     ]);
-    const unixTimestamp = parseInt(rawForkTimestamp.trim());
+
+    const firstLine = output.split("\n")[0]?.trim();
+
     return {
-      forkedAt: new Date(unixTimestamp * 1000).toISOString(),
-      mergeBaseSha,
+      forkedAt: !firstLine
+        ? null
+        : new Date(Number(firstLine) * 1000).toISOString(),
     };
+    // const mergeBaseSha = (
+    //   await runGit(repoPath, [
+    //     "merge-base",
+    //     `origin/${originDefault}`,
+    //     `origin/${branchName}`,
+    //   ])
+    // ).trim();
+
+    // const rawForkTimestamp = await runGit(repoPath, [
+    //   "show",
+    //   "-s",
+    //   `--format=%ct`,
+    //   mergeBaseSha,
+    // ]);
+    // const unixTimestamp = parseInt(rawForkTimestamp.trim());
+    // return {
+    //   forkedAt: new Date(unixTimestamp * 1000).toISOString(),
+    //   mergeBaseSha,
+    // };
 
     // could also add the fork commit for ontext
     // const raw = (await git(repoPath, [

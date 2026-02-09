@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import type { TimelinePoint, UiBranch } from "@/types/digest";
 import { DemoNotice } from "./demo-notice";
+import { isActive } from "@/lib/utils";
 
 const BranchTimeline = dynamic(
   () => import("./branch-timeline").then((m) => m.BranchTimeline),
@@ -23,7 +24,7 @@ interface TimelineContentProps {
 }
 
 export function TimelineContent({ branches, timeline }: TimelineContentProps) {
-  const activeBranchList = branches.filter((b) => !b.isStale);
+  const activeBranchList = branches.filter((b) => isActive(b));
   const staleBranchList = branches.filter((b) => b.isStale);
   const criticalBranchList = branches.filter(
     (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
