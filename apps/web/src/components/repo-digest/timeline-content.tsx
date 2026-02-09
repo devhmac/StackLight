@@ -24,9 +24,14 @@ interface TimelineContentProps {
 }
 
 export function TimelineContent({ branches, timeline }: TimelineContentProps) {
-  const activeBranchList = branches.filter((b) => isActive(b));
-  const staleBranchList = branches.filter((b) => b.isStale);
-  const criticalBranchList = branches.filter(
+  const sortedBranches = [...branches].sort(
+    (a, b) =>
+      new Date(b.lastCommitTimestamp ?? 0).getTime() -
+      new Date(a.lastCommitTimestamp ?? 0).getTime(),
+  );
+  const activeBranchList = sortedBranches.filter((b) => isActive(b));
+  const staleBranchList = sortedBranches.filter((b) => b.isStale);
+  const criticalBranchList = sortedBranches.filter(
     (b) => (b.commitsBehind ?? 0) > 30 && !b.isStale,
   );
 
@@ -78,7 +83,7 @@ export function TimelineContent({ branches, timeline }: TimelineContentProps) {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="all" className="mt-4">
-              <BranchTimeline branches={branches} timeline={timeline} />
+              <BranchTimeline branches={sortedBranches} timeline={timeline} />
             </TabsContent>
             <TabsContent value="active" className="mt-4">
               {activeBranchList.length > 0 ? (

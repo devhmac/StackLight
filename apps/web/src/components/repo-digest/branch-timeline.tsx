@@ -103,12 +103,12 @@ export function BranchTimeline({ branches, timeline }: BranchTimelineProps) {
   // NOTE: We build the feature payloads here so we don't duplicate the override logic.
   const groupedBranches = useMemo(() => {
     const groups = new Map<string, GroupedBranchItem[]>([
-      ["merged", []],
       ["feature", []],
       ["fix", []],
       ["chore", []],
       ["experiment", []],
       ["other", []],
+      ["merged", []],
     ]);
 
     for (const branch of branches) {
