@@ -9,6 +9,7 @@ import {
   FolderGit2,
   ChevronDown,
   ChartGantt,
+  GitPullRequest,
 } from "lucide-react";
 
 import {
@@ -60,6 +61,11 @@ export function DigestSidebar({ repos, selectedRepoId }: DigestSidebarProps) {
           title: "Branches",
           href: `${basePath}/branches`,
           icon: GitBranch,
+        },
+        {
+          title: "Pull Requests",
+          href: `${basePath}/pull-requests`,
+          icon: GitPullRequest,
         },
         {
           title: "Risks",

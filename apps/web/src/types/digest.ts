@@ -118,3 +118,52 @@ export interface Stream {
   };
 }
 export type RepoDigest = any;
+
+// ===== PR Visibility Types =====
+// TODO: These types support server actions that will migrate to Hono API endpoints
+
+export interface GhPrReview {
+  author: { login: string };
+  state: "APPROVED" | "CHANGES_REQUESTED" | "COMMENTED" | "DISMISSED" | "PENDING";
+  submittedAt: string;
+}
+
+export interface GhPullRequest {
+  number: number;
+  title: string;
+  state: "OPEN" | "CLOSED" | "MERGED";
+  isDraft: boolean;
+  author: { login: string };
+  createdAt: string;
+  updatedAt: string;
+  closedAt: string | null;
+  mergedAt: string | null;
+  additions: number;
+  deletions: number;
+  changedFiles: number;
+  headRefName: string;
+  reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+  reviews: GhPrReview[];
+  commentCount: number;
+}
+
+export interface PrMetrics {
+  changeRequestCycles: number;
+  timeOpenMs: number;
+  timeToMergeMs: number | null;
+  commentCount: number;
+  reviewers: string[];
+}
+
+export interface PrWithMetrics extends GhPullRequest {
+  metrics: PrMetrics;
+}
+
+export type PrFilter = "open" | "closed" | "all";
+export type PrSort = "updated" | "created";
+
+export interface PrBranchInfo {
+  number: number;
+  headRefName: string;
+  reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
+}

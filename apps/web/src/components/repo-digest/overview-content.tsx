@@ -20,7 +20,7 @@ export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
   );
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">
@@ -92,6 +92,6 @@ export function OverviewContent({ repo, risks = [] }: OverviewContentProps) {
           </ul>
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }

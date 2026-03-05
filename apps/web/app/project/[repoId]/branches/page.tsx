@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FolderGit2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getRepoDetails } from "@/lib/data";
+import { getOpenPrBranches } from "@/lib/github-pr";
 import { BranchTableCard } from "@/components/repo-digest/branch-table";
 
 interface ProjectDetailsPageProps {
@@ -32,5 +33,10 @@ export default async function ProjectDetailsPage({
     );
   }
 
-  return <BranchTableCard repo={repo} />;
+  const openPrBranches = await getOpenPrBranches(repo.path);
+  const prByBranch = Object.fromEntries(
+    openPrBranches.map((pr) => [pr.headRefName, pr])
+  );
+
+  return <BranchTableCard repo={repo} prByBranch={prByBranch} />;
 }

@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { format, formatDistance } from "date-fns";
-import { GitBranch } from "lucide-react";
+import { GitBranch, GitPullRequest } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,15 +14,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { RepoDetails, UiBranch } from "@/types/digest";
+import type { RepoDetails, UiBranch, PrBranchInfo } from "@/types/digest";
 import { BranchDetailDialog } from "./branch-detail-dialog";
 import { isActive } from "@/lib/utils";
 
 interface RepoDetailContentProps {
   repo: RepoDetails;
+  prByBranch?: Record<string, PrWithMetrics>;
 }
 
-export function BranchTableCard({ repo }: RepoDetailContentProps) {
+export function BranchTableCard({ repo, prByBranch = {} }: RepoDetailContentProps) {
   const branches = repo.branches;
   const currentPage = branches;
 
@@ -36,7 +37,7 @@ export function BranchTableCard({ repo }: RepoDetailContentProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <BranchTable branches={branches} />
+          <BranchTable branches={branches} prByBranch={prByBranch} />
           {branches.length > 20 && (
             <p className="text-muted-foreground mt-4 text-center text-sm">
               Showing {currentPage.length} of {branches.length} branches
@@ -48,7 +49,13 @@ export function BranchTableCard({ repo }: RepoDetailContentProps) {
   );
 }
 
-export const BranchTable = ({ branches }: { branches: UiBranch[] }) => {
+export const BranchTable = ({
+  branches,
+  prByBranch = {},
+}: {
+  branches: UiBranch[];
+  prByBranch?: Record<string, PrWithMetrics>;
+}) => {
   const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -109,6 +116,12 @@ export const BranchTable = ({ branches }: { branches: UiBranch[] }) => {
                   {branch.isNew && <Badge className="bg-blue-500">New</Badge>}
                   {branch.isStale && <Badge variant="secondary">Stale</Badge>}
                   {isActive(branch) && <Badge variant="success">Active</Badge>}
+                  {prByBranch[branch.name] && (
+                    <Badge variant="outline" className="gap-1">
+                      <GitPullRequest className="h-3 w-3" />
+                      #{prByBranch[branch.name]!.number}
+                    </Badge>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
