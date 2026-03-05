@@ -142,6 +142,9 @@ export interface GhPullRequest {
   deletions: number;
   changedFiles: number;
   headRefName: string;
+  baseRefName: string;
+  url: string;
+  bodyText: string;
   reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
   reviews: GhPrReview[];
   commentCount: number;
@@ -157,6 +160,14 @@ export interface PrMetrics {
 
 export interface PrWithMetrics extends GhPullRequest {
   metrics: PrMetrics;
+}
+
+export interface PrPage {
+  prs: PrWithMetrics[];
+  pageInfo: {
+    hasNextPage: boolean;
+    endCursor: string | null;
+  };
 }
 
 export type PrFilter = "open" | "closed" | "all";

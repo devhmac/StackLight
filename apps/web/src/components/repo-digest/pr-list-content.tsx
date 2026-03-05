@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatDistance } from "date-fns";
+import { useInView } from "react-intersection-observer";
 import { GitPullRequest } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,16 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { PrWithMetrics, PrFilter, PrSort } from "@/types/digest";
-import { fetchPrsAction } from "@/lib/pr-actions";
+import type { PrWithMetrics, PrFilter, PrSort, PrPage } from "@/types/digest";
+import { fetchPrsPageAction } from "@/lib/pr-actions";
 import { formatDurationFrom } from "@/lib/utils";
+import { PrDetailDialog } from "./pr-detail-dialog";
 
 interface PrListContentProps {
-  initialPrs: PrWithMetrics[];
+  initialPage: PrPage;
   repoPath: string;
 }
 
-function getPrStatusBadge(pr: PrWithMetrics) {
+export function getPrStatusBadge(pr: PrWithMetrics) {
   if (pr.isDraft) return <Badge variant="secondary">Draft</Badge>;
   if (pr.state === "MERGED") return <Badge>Merged</Badge>;
   if (pr.state === "CLOSED") return <Badge variant="secondary">Closed</Badge>;
@@ -54,27 +56,113 @@ const SORT_OPTIONS: { label: string; value: PrSort }[] = [
   { label: "Newest", value: "created" },
 ];
 
-export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
+function SkeletonRows({ count = 5 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <TableRow key={i}>
+          <TableCell>
+            <div className="flex flex-col gap-1">
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </TableCell>
+          <TableCell className="text-center">
+            <Skeleton className="mx-auto h-5 w-8 rounded-full" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="ml-auto h-4 w-12" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="ml-auto h-4 w-16" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="ml-auto h-4 w-24" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="ml-auto h-4 w-6" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
+}
+
+export function PrListContent({ initialPage, repoPath }: PrListContentProps) {
   const [filter, setFilter] = useState<PrFilter>("open");
   const [sort, setSort] = useState<PrSort>("updated");
-  const [prs, setPrs] = useState(initialPrs);
-  const [isPending, startTransition] = useTransition();
+  const [prs, setPrs] = useState<PrWithMetrics[]>(initialPage.prs);
+  const [cursor, setCursor] = useState<string | null>(initialPage.pageInfo.endCursor);
+  const [hasNextPage, setHasNextPage] = useState(initialPage.pageInfo.hasNextPage);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
-  const refetchPrs = (newFilter: PrFilter, newSort: PrSort) => {
-    startTransition(async () => {
-      const result = await fetchPrsAction(repoPath, newFilter, newSort);
-      setPrs(result);
-    });
-  };
+  // Dialog state
+  const [selectedPr, setSelectedPr] = useState<PrWithMetrics | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { ref: sentinelRef, inView } = useInView({ threshold: 0 });
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasNextPage) return;
+    setIsLoadingMore(true);
+    try {
+      const page = await fetchPrsPageAction(repoPath, filter, sort, cursor);
+      setPrs((prev) => [...prev, ...page.prs]);
+      setCursor(page.pageInfo.endCursor);
+      setHasNextPage(page.pageInfo.hasNextPage);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasNextPage, repoPath, filter, sort, cursor]);
+
+  // Auto-load when sentinel comes into view
+  useEffect(() => {
+    if (inView && hasNextPage && !isLoadingMore && !isResetting) {
+      loadMore();
+    }
+  }, [inView, hasNextPage, isLoadingMore, isResetting, loadMore]);
+
+  const resetAndFetch = useCallback(
+    async (newFilter: PrFilter, newSort: PrSort) => {
+      setIsResetting(true);
+      setPrs([]);
+      setCursor(null);
+      setHasNextPage(false);
+      try {
+        const page = await fetchPrsPageAction(repoPath, newFilter, newSort, null);
+        setPrs(page.prs);
+        setCursor(page.pageInfo.endCursor);
+        setHasNextPage(page.pageInfo.hasNextPage);
+      } finally {
+        setIsResetting(false);
+      }
+    },
+    [repoPath],
+  );
 
   const handleFilterChange = (newFilter: PrFilter) => {
     setFilter(newFilter);
-    refetchPrs(newFilter, sort);
+    resetAndFetch(newFilter, sort);
   };
 
   const handleSortChange = (newSort: PrSort) => {
     setSort(newSort);
-    refetchPrs(filter, newSort);
+    resetAndFetch(filter, newSort);
+  };
+
+  const handlePrClick = (pr: PrWithMetrics) => {
+    setSelectedPr(pr);
+    setDialogOpen(true);
   };
 
   return (
@@ -89,7 +177,7 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
                 variant={sort === opt.value ? "default" : "ghost"}
                 size="sm"
                 onClick={() => handleSortChange(opt.value)}
-                disabled={isPending}
+                disabled={isResetting}
               >
                 {opt.label}
               </Button>
@@ -103,7 +191,7 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
                 variant={filter === opt.value ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleFilterChange(opt.value)}
-                disabled={isPending}
+                disabled={isResetting}
               >
                 {opt.label}
               </Button>
@@ -123,7 +211,7 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
                 : "All"}{" "}
             Pull Requests
             <span className="text-muted-foreground text-sm font-normal">
-              ({prs.length})
+              ({prs.length} loaded{hasNextPage ? "+" : ""})
             </span>
           </CardTitle>
         </CardHeader>
@@ -143,41 +231,8 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isPending ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Skeleton className="h-4 w-10" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-20" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-5 w-16 rounded-full" />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Skeleton className="mx-auto h-5 w-8 rounded-full" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="ml-auto h-4 w-12" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="ml-auto h-4 w-16" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="ml-auto h-4 w-24" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Skeleton className="ml-auto h-4 w-6" />
-                    </TableCell>
-                    <TableCell>
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                  </TableRow>
-                ))
+              {isResetting ? (
+                <SkeletonRows count={8} />
               ) : prs.length === 0 ? (
                 <TableRow>
                   <TableCell
@@ -188,60 +243,78 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
                   </TableCell>
                 </TableRow>
               ) : (
-                prs.map((pr) => (
-                  <TableRow key={pr.number}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">#{pr.number}</span>
-                        <span className="text-muted-foreground max-w-[200px] truncate text-xs">
-                          {pr.title}
+                <>
+                  {prs.map((pr) => (
+                    <TableRow
+                      key={pr.number}
+                      className="cursor-pointer"
+                      onClick={() => handlePrClick(pr)}
+                    >
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">#{pr.number}</span>
+                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                            {pr.title}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {pr.author.login}
+                      </TableCell>
+                      <TableCell>{getPrStatusBadge(pr)}</TableCell>
+                      <TableCell className="text-center">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getCycleBadgeClass(pr.metrics.changeRequestCycles)}`}
+                        >
+                          {pr.metrics.changeRequestCycles}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {pr.author.login}
-                    </TableCell>
-                    <TableCell>{getPrStatusBadge(pr)}</TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getCycleBadgeClass(pr.metrics.changeRequestCycles)}`}
-                      >
-                        {pr.metrics.changeRequestCycles}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right text-sm">
-                      {formatDurationFrom(pr.metrics.timeOpenMs)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right text-sm">
-                      {formatDistance(new Date(pr.updatedAt), new Date(), {
-                        addSuffix: true,
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-green-600 dark:text-green-400">
-                        +{pr.additions}
-                      </span>
-                      {" / "}
-                      <span className="text-red-600 dark:text-red-400">
-                        -{pr.deletions}
-                      </span>
-                      <span className="text-muted-foreground ml-1 text-xs">
-                        ({pr.changedFiles} files)
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-right">
-                      {pr.metrics.commentCount}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {pr.metrics.reviewers.join(", ") || "\u2014"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right text-sm">
+                        {formatDurationFrom(pr.metrics.timeOpenMs)}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right text-sm">
+                        {formatDistance(new Date(pr.updatedAt), new Date(), {
+                          addSuffix: true,
+                        })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-green-600 dark:text-green-400">
+                          +{pr.additions}
+                        </span>
+                        {" / "}
+                        <span className="text-red-600 dark:text-red-400">
+                          -{pr.deletions}
+                        </span>
+                        <span className="text-muted-foreground ml-1 text-xs">
+                          ({pr.changedFiles} files)
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right">
+                        {pr.metrics.commentCount}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {pr.metrics.reviewers.join(", ") || "\u2014"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {isLoadingMore && <SkeletonRows count={3} />}
+                </>
               )}
             </TableBody>
           </Table>
+
+          {/* Sentinel for infinite scroll */}
+          {hasNextPage && !isResetting && (
+            <div ref={sentinelRef} className="h-1" />
+          )}
         </CardContent>
       </Card>
+
+      <PrDetailDialog
+        pr={selectedPr}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 }

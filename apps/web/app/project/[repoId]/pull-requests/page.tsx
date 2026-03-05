@@ -1,6 +1,6 @@
 import { GitPullRequest } from "lucide-react";
 import { getRepoDetails } from "@/lib/data";
-import { getCachedPullRequests } from "@/lib/github-pr";
+import { getRepoPullRequestsPage } from "@/lib/github-pr";
 import { PrListContent } from "@/components/repo-digest/pr-list-content";
 
 interface PullRequestsPageProps {
@@ -25,7 +25,7 @@ export default async function PullRequestsPage({
     );
   }
 
-  const prs = await getCachedPullRequests(repoId);
+  const initialPage = await getRepoPullRequestsPage(repo.path);
 
-  return <PrListContent initialPrs={prs} repoPath={repo.path} />;
+  return <PrListContent initialPage={initialPage} repoPath={repo.path} />;
 }

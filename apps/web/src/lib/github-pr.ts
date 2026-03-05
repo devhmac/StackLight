@@ -15,7 +15,7 @@
 import { cache } from "react";
 import { execFile, exec } from "child_process";
 import { promisify } from "util";
-import type { GhPullRequest, GhPrReview, PrMetrics, PrWithMetrics, PrFilter, PrSort, PrBranchInfo } from "@/types/digest";
+import type { GhPullRequest, GhPrReview, PrMetrics, PrWithMetrics, PrFilter, PrSort, PrBranchInfo, PrPage } from "@/types/digest";
 
 function getAppBaseUrl(): string {
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
@@ -109,6 +109,9 @@ function buildPrQuery(owner: string, name: string, states: string, cursor: strin
           deletions
           changedFiles
           headRefName
+          baseRefName
+          url
+          bodyText
           reviewDecision
           reviews(first: 100) {
             nodes {
@@ -140,6 +143,9 @@ interface GraphQLPrNode {
   deletions: number;
   changedFiles: number;
   headRefName: string;
+  baseRefName: string;
+  url: string;
+  bodyText: string;
   reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
   reviews: { nodes: GhPrReview[] };
   comments: { totalCount: number };
@@ -160,6 +166,9 @@ function transformNode(node: GraphQLPrNode): GhPullRequest {
     deletions: node.deletions,
     changedFiles: node.changedFiles,
     headRefName: node.headRefName,
+    baseRefName: node.baseRefName,
+    url: node.url,
+    bodyText: node.bodyText,
     reviewDecision: node.reviewDecision,
     reviews: node.reviews.nodes,
     commentCount: node.comments.totalCount,
@@ -199,6 +208,37 @@ export const getRepoPullRequests = cache(
     }
 
     return allPrs.map((pr) => ({ ...pr, metrics: computePrMetrics(pr) }));
+  },
+);
+
+export const getRepoPullRequestsPage = cache(
+  async (
+    repoPath: string,
+    state: PrFilter = "open",
+    sort: PrSort = "updated",
+    cursor: string | null = null,
+  ): Promise<PrPage> => {
+    const { owner, name } = await getRepoOwner(repoPath);
+    const states = STATE_MAP[state];
+    const sortField = SORT_FIELD_MAP[sort];
+
+    const query = buildPrQuery(owner, name, states, cursor, sortField);
+    const result = await execGraphQL(query) as {
+      data: {
+        repository: {
+          pullRequests: {
+            pageInfo: { hasNextPage: boolean; endCursor: string | null };
+            nodes: GraphQLPrNode[];
+          };
+        };
+      };
+    };
+
+    const page = result.data.repository.pullRequests;
+    return {
+      prs: page.nodes.map(transformNode).map((pr) => ({ ...pr, metrics: computePrMetrics(pr) })),
+      pageInfo: page.pageInfo,
+    };
   },
 );
 
