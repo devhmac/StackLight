@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import type { PrWithMetrics, PrFilter, PrSort } from "@/types/digest";
 import { fetchPrsAction } from "@/lib/pr-actions";
+import { formatDurationFrom } from "@/lib/utils";
 
 interface PrListContentProps {
   initialPrs: PrWithMetrics[];
@@ -40,11 +41,6 @@ function getCycleBadgeClass(cycles: number): string {
   if (cycles <= 3)
     return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
   return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
-}
-
-function formatDuration(ms: number): string {
-  const now = new Date();
-  return formatDistance(new Date(now.getTime() - ms), now);
 }
 
 const FILTER_OPTIONS: { label: string; value: PrFilter }[] = [
@@ -133,96 +129,117 @@ export function PrListContent({ initialPrs, repoPath }: PrListContentProps) {
         </CardHeader>
         <CardContent>
           <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>PR</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Cycles</TableHead>
-                  <TableHead className="text-right">Time Open</TableHead>
-                  <TableHead className="text-right">Last Updated</TableHead>
-                  <TableHead className="text-right">Changes</TableHead>
-                  <TableHead className="text-right">Comments</TableHead>
-                  <TableHead>Reviewers</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isPending ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <Skeleton className="h-4 w-10" />
-                          <Skeleton className="h-3 w-32" />
-                        </div>
-                      </TableCell>
-                      <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
-                      <TableCell className="text-center"><Skeleton className="mx-auto h-5 w-8 rounded-full" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-12" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-16" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-24" /></TableCell>
-                      <TableCell className="text-right"><Skeleton className="ml-auto h-4 w-6" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : prs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-muted-foreground py-8 text-center">
-                      No {filter === "all" ? "" : filter} pull requests found.
+            <TableHeader>
+              <TableRow>
+                <TableHead>PR</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Cycles</TableHead>
+                <TableHead className="text-right">Time Open</TableHead>
+                <TableHead className="text-right">Last Updated</TableHead>
+                <TableHead className="text-right">Changes</TableHead>
+                <TableHead className="text-right">Comments</TableHead>
+                <TableHead>Reviewers</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isPending ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        <Skeleton className="h-4 w-10" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Skeleton className="mx-auto h-5 w-8 rounded-full" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-4 w-12" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-4 w-16" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-4 w-24" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="ml-auto h-4 w-6" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
                     </TableCell>
                   </TableRow>
-                ) : (
-                  prs.map((pr) => (
-                    <TableRow key={pr.number}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">#{pr.number}</span>
-                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
-                            {pr.title}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {pr.author.login}
-                      </TableCell>
-                      <TableCell>{getPrStatusBadge(pr)}</TableCell>
-                      <TableCell className="text-center">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getCycleBadgeClass(pr.metrics.changeRequestCycles)}`}
-                        >
-                          {pr.metrics.changeRequestCycles}
+                ))
+              ) : prs.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="text-muted-foreground py-8 text-center"
+                  >
+                    No {filter === "all" ? "" : filter} pull requests found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                prs.map((pr) => (
+                  <TableRow key={pr.number}>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">#{pr.number}</span>
+                        <span className="text-muted-foreground max-w-[200px] truncate text-xs">
+                          {pr.title}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-right text-sm">
-                        {formatDuration(pr.metrics.timeOpenMs)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-right text-sm">
-                        {formatDistance(new Date(pr.updatedAt), new Date(), { addSuffix: true })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-green-600 dark:text-green-400">
-                          +{pr.additions}
-                        </span>
-                        {" / "}
-                        <span className="text-red-600 dark:text-red-400">
-                          -{pr.deletions}
-                        </span>
-                        <span className="text-muted-foreground ml-1 text-xs">
-                          ({pr.changedFiles} files)
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-right">
-                        {pr.metrics.commentCount}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {pr.metrics.reviewers.join(", ") || "\u2014"}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {pr.author.login}
+                    </TableCell>
+                    <TableCell>{getPrStatusBadge(pr)}</TableCell>
+                    <TableCell className="text-center">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${getCycleBadgeClass(pr.metrics.changeRequestCycles)}`}
+                      >
+                        {pr.metrics.changeRequestCycles}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-right text-sm">
+                      {formatDurationFrom(pr.metrics.timeOpenMs)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-right text-sm">
+                      {formatDistance(new Date(pr.updatedAt), new Date(), {
+                        addSuffix: true,
+                      })}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-green-600 dark:text-green-400">
+                        +{pr.additions}
+                      </span>
+                      {" / "}
+                      <span className="text-red-600 dark:text-red-400">
+                        -{pr.deletions}
+                      </span>
+                      <span className="text-muted-foreground ml-1 text-xs">
+                        ({pr.changedFiles} files)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-right">
+                      {pr.metrics.commentCount}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {pr.metrics.reviewers.join(", ") || "\u2014"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
