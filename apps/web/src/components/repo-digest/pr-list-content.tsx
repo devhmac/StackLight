@@ -251,10 +251,10 @@ export function PrListContent({ initialPage, repoPath }: PrListContentProps) {
                       onClick={() => handlePrClick(pr)}
                     >
                       <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-medium">#{pr.number}</span>
-                          <span className="text-muted-foreground max-w-[200px] truncate text-xs">
-                            {pr.title}
+                        <div className="flex max-w-xs flex-col">
+                          <span className="truncate text-sm font-medium">{pr.title}</span>
+                          <span className="text-muted-foreground text-xs">
+                            #{pr.number}
                           </span>
                         </div>
                       </TableCell>

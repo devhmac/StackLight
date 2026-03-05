@@ -1,6 +1,6 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import {
   GitPullRequest,
   ArrowRight,
@@ -32,50 +32,113 @@ interface PrDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function getReviewStateBadge(state: string) {
-  switch (state) {
-    case "APPROVED":
-      return <Badge variant="success">Approved</Badge>;
-    case "CHANGES_REQUESTED":
-      return <Badge variant="destructive">Changes Requested</Badge>;
-    case "COMMENTED":
-      return <Badge variant="outline">Commented</Badge>;
-    case "DISMISSED":
-      return <Badge variant="secondary">Dismissed</Badge>;
-    default:
-      return <Badge variant="outline">{state}</Badge>;
+interface TimelineEvent {
+  type: "opened" | "review" | "changes_requested" | "merged" | "closed";
+  date: string;
+  actor: string;
+  commentsBetween: number;
+}
+
+function buildTimeline(pr: PrWithMetrics): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  // 1. Opened
+  events.push({
+    type: "opened",
+    date: pr.createdAt,
+    actor: pr.author.login,
+    commentsBetween: 0,
+  });
+
+  // 2. Review events — filter to significant states, count COMMENTED between them
+  const sorted = [...pr.reviews].sort(
+    (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime(),
+  );
+
+  let commentCount = 0;
+  for (const review of sorted) {
+    if (review.state === "COMMENTED" || review.state === "PENDING" || review.state === "DISMISSED") {
+      commentCount++;
+      continue;
+    }
+    events.push({
+      type: review.state === "CHANGES_REQUESTED" ? "changes_requested" : "review",
+      date: review.submittedAt,
+      actor: review.author.login,
+      commentsBetween: commentCount,
+    });
+    commentCount = 0;
+  }
+
+  // 3. Merged or Closed
+  if (pr.mergedAt) {
+    events.push({
+      type: "merged",
+      date: pr.mergedAt,
+      actor: pr.author.login,
+      commentsBetween: commentCount,
+    });
+  } else if (pr.closedAt) {
+    events.push({
+      type: "closed",
+      date: pr.closedAt,
+      actor: pr.author.login,
+      commentsBetween: commentCount,
+    });
+  }
+
+  return events;
+}
+
+const DOT_COLORS: Record<TimelineEvent["type"], string> = {
+  opened: "bg-blue-500",
+  review: "bg-green-500",
+  changes_requested: "bg-red-500",
+  merged: "bg-purple-500",
+  closed: "bg-gray-400",
+};
+
+function timelineLabel(event: TimelineEvent): string {
+  switch (event.type) {
+    case "opened":
+      return `Opened by @${event.actor}`;
+    case "review":
+      return `Approved by @${event.actor}`;
+    case "changes_requested":
+      return `Changes requested by @${event.actor}`;
+    case "merged":
+      return "Merged";
+    case "closed":
+      return "Closed";
   }
 }
 
 export function PrDetailDialog({ pr, open, onOpenChange }: PrDetailDialogProps) {
   if (!pr) return null;
 
-  const sortedReviews = [...pr.reviews].sort(
-    (a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime(),
-  );
+  const timeline = buildTimeline(pr);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <DialogTitle className="flex items-center gap-2 text-lg">
-                <GitPullRequest className="h-5 w-5 shrink-0" />
-                <span className="truncate">#{pr.number} {pr.title}</span>
+              <DialogTitle className="flex min-w-0 items-start gap-2 text-lg">
+                <GitPullRequest className="mt-1 h-5 w-5 shrink-0" />
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">#{pr.number} {pr.title}</span>
               </DialogTitle>
               <DialogDescription className="mt-1 flex flex-wrap items-center gap-1.5">
                 <span>by {pr.author.login}</span>
                 <span>&middot;</span>
                 <span>
-                  opened{" "}
-                  {formatDistanceToNow(new Date(pr.createdAt), { addSuffix: true })}
+                  opened {format(new Date(pr.createdAt), "MMM d, yyyy")}
                 </span>
                 <span>&middot;</span>
-                <span className="inline-flex items-center gap-1 font-mono text-xs">
-                  {pr.headRefName}
-                  <ArrowRight className="h-3 w-3" />
-                  {pr.baseRefName}
+                <span className="inline-flex min-w-0 items-center gap-1 font-mono text-xs">
+                  <span className="truncate">{pr.headRefName}</span>
+                  <ArrowRight className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{pr.baseRefName}</span>
                 </span>
               </DialogDescription>
             </div>
@@ -139,32 +202,45 @@ export function PrDetailDialog({ pr, open, onOpenChange }: PrDetailDialogProps) 
           <h3 className="mb-2 text-sm font-medium">Description</h3>
           <div className="rounded-lg border p-3">
             {pr.bodyText ? (
-              <p className="whitespace-pre-wrap text-sm">{pr.bodyText}</p>
+              <p className="break-words text-sm [overflow-wrap:anywhere] whitespace-pre-wrap">{pr.bodyText}</p>
             ) : (
               <p className="text-muted-foreground text-sm italic">No description provided.</p>
             )}
           </div>
         </div>
 
-        {/* Review timeline */}
-        {sortedReviews.length > 0 && (
+        {/* Lifecycle timeline */}
+        {timeline.length > 1 && (
           <div>
-            <h3 className="mb-2 text-sm font-medium">Reviews</h3>
-            <div className="space-y-1 rounded-lg border">
-              {sortedReviews.map((review, i) => (
-                <div
-                  key={`${review.author.login}-${review.submittedAt}-${i}`}
-                  className="flex items-center gap-3 border-b px-3 py-2 last:border-b-0"
-                >
-                  <span className="text-sm font-medium">{review.author.login}</span>
-                  <div className="flex-1">{getReviewStateBadge(review.state)}</div>
-                  <span className="text-muted-foreground shrink-0 text-xs">
-                    {formatDistanceToNow(new Date(review.submittedAt), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                </div>
-              ))}
+            <h3 className="mb-2 text-sm font-medium">Timeline</h3>
+            <div className="rounded-lg border p-4">
+              <div className="relative">
+                {timeline.map((event, i) => (
+                  <div key={`${event.type}-${event.date}-${i}`} className="relative flex gap-3">
+                    {/* Connector line + dot */}
+                    <div className="flex flex-col items-center">
+                      <div className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT_COLORS[event.type]}`} />
+                      {i < timeline.length - 1 && (
+                        <div className="border-border w-px flex-1 border-l-2" />
+                      )}
+                    </div>
+                    {/* Content */}
+                    <div className={`${i < timeline.length - 1 ? "pb-4" : ""} -mt-0.5 min-w-0 flex-1`}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium">{timelineLabel(event)}</span>
+                        <span className="text-muted-foreground shrink-0 text-xs">
+                          {format(new Date(event.date), "MMM d")}
+                        </span>
+                      </div>
+                      {event.commentsBetween > 0 && (
+                        <p className="text-muted-foreground text-xs">
+                          {event.commentsBetween} comment{event.commentsBetween !== 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
