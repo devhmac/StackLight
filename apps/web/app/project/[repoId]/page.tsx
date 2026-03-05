@@ -1,9 +1,9 @@
-import { Suspense } from "react";
+import React, { Suspense } from "react";
 import { GitBranch, GitPullRequest, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRepoDetails, getRiskSnapshot } from "@/lib/data";
-import { getRepoPullRequests } from "@/lib/github-pr";
+import { getCachedPullRequests } from "@/lib/github-pr";
 import { OverviewContent } from "@/components/repo-digest/overview-content";
 import { MetricCard } from "@/components/repo-digest/metric-card";
 import type { PrWithMetrics } from "@/types/digest";
@@ -126,8 +126,8 @@ function PrOverviewCards({ openPrs }: { openPrs: PrWithMetrics[] }) {
   );
 }
 
-async function PrOverviewSection({ repoPath }: { repoPath: string }) {
-  const openPrs = await getRepoPullRequests(repoPath, "open");
+async function PrOverviewSection({ repoId }: { repoId: string }) {
+  const openPrs = await getCachedPullRequests(repoId, "open");
   return <PrOverviewCards openPrs={openPrs} />;
 }
 
@@ -156,7 +156,7 @@ export default async function ProjectOverviewPage({
     <div className="space-y-6">
       <OverviewContent repo={repo} risks={risks} />
       <Suspense fallback={<PrOverviewSkeleton />}>
-        <PrOverviewSection repoPath={repo.path} />
+        <PrOverviewSection repoId={repoId} />
       </Suspense>
     </div>
   );

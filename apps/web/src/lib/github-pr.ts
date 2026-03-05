@@ -17,6 +17,11 @@ import { execFile, exec } from "child_process";
 import { promisify } from "util";
 import type { GhPullRequest, GhPrReview, PrMetrics, PrWithMetrics, PrFilter, PrSort, PrBranchInfo } from "@/types/digest";
 
+function getAppBaseUrl(): string {
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT || 3000}`;
+}
+
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 
@@ -228,6 +233,26 @@ export const getOpenPrBranches = cache(
     return result.data.repository.pullRequests.nodes;
   },
 );
+
+// ===== Cached Fetcher (via Route Handler) =====
+
+export async function getCachedPullRequests(
+  repoId: string,
+  state: PrFilter = "open",
+  sort: PrSort = "updated",
+): Promise<PrWithMetrics[]> {
+  const url = `${getAppBaseUrl()}/api/repos/${repoId}/pull-requests?state=${state}&sort=${sort}`;
+  const res = await fetch(url, {
+    cache: "force-cache",
+    next: { tags: [`prs-${repoId}`] },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch cached PRs: ${res.statusText}`);
+  }
+
+  return res.json();
+}
 
 // ===== Metric Computation =====
 // This is pure — no side effects, no I/O. Reusable in Hono server.

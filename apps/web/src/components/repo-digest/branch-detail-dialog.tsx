@@ -191,9 +191,9 @@ export function BranchDetailDialog({
               </DialogTitle>
               <DialogDescription className="mt-1">
                 by {branch.author} &middot; started{" "}
-                {formatDistanceToNow(new Date(branch.forkedAt), {
+                {branch.forkedAt ? formatDistanceToNow(new Date(branch.forkedAt), {
                   addSuffix: true,
-                })}
+                }) : "unknown"}
               </DialogDescription>
             </div>
             <div className="flex shrink-0 gap-1.5">

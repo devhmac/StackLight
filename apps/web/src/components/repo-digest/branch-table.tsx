@@ -20,7 +20,7 @@ import { isActive } from "@/lib/utils";
 
 interface RepoDetailContentProps {
   repo: RepoDetails;
-  prByBranch?: Record<string, PrWithMetrics>;
+  prByBranch?: Record<string, PrBranchInfo>;
 }
 
 export function BranchTableCard({ repo, prByBranch = {} }: RepoDetailContentProps) {
@@ -54,7 +54,7 @@ export const BranchTable = ({
   prByBranch = {},
 }: {
   branches: UiBranch[];
-  prByBranch?: Record<string, PrWithMetrics>;
+  prByBranch?: Record<string, PrBranchInfo>;
 }) => {
   const [selectedBranch, setSelectedBranch] = useState<UiBranch | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);

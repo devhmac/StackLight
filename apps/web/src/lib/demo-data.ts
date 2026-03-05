@@ -73,9 +73,11 @@ export const demoBranchDetail: BranchDetail = {
   author: "Sarah Chen",
   email: "schen@example.com",
   forkedAt: "2025-01-01T12:00:00.000Z",
-  mergeBaseSha: "abc123",
   commitsAhead: 12,
   commitsBehind: 3,
+  isMerged: false,
+  isStale: false,
+  isNew: false,
   lastCommitTimestamp: "2025-01-14T12:00:00.000Z",
   lastCommitMessage: "feat: add payment retry logic with exponential backoff",
   filesChanged: [
