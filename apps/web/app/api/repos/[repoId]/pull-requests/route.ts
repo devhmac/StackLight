@@ -18,11 +18,17 @@ export async function GET(
     return NextResponse.json({ error: "Repo not found" }, { status: 404 });
   }
 
-  if (cursor) {
-    const page = await getRepoPullRequestsPage(repo.path, state, sort, cursor);
-    return NextResponse.json(page);
-  }
+  try {
+    if (cursor) {
+      const page = await getRepoPullRequestsPage(repo.path, state, sort, cursor);
+      return NextResponse.json(page);
+    }
 
-  const prs = await getRepoPullRequests(repo.path, state, sort);
-  return NextResponse.json(prs);
+    const prs = await getRepoPullRequests(repo.path, state, sort);
+    return NextResponse.json(prs);
+  } catch (err) {
+    console.error("[pull-requests route]", err);
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
